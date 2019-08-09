@@ -273,7 +273,9 @@
 
 (use-package midnight)
 
-(use-package markdown-mode :ensure t)
+(use-package markdown-mode
+  :ensure t
+  :hook (markdown-mode . display-line-numbers-mode))
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'prog-mode-hook 'company-mode)
