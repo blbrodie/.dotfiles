@@ -133,6 +133,11 @@
   :config
   (setq restclient-inhibit-cookies t))
 
+(use-package web-mode
+  :ensure t
+  :mode "\\.erb\\'"
+  :config (setq web-mode-markup-indent-offset 2))
+
 (use-package ivy
   :ensure t
   :bind
@@ -275,7 +280,11 @@
 
 (use-package markdown-mode
   :ensure t
-  :hook (markdown-mode . display-line-numbers-mode))
+  :hook
+  (markdown-mode . auto-fill-mode)
+  (markdown-mode . display-line-numbers-mode)
+  (markdown-mode . (lambda() (setq-local fill-column 80)))
+  (markdown-mode . company-mode))
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'prog-mode-hook 'company-mode)
@@ -344,13 +353,14 @@
  '(custom-safe-themes
    (quote
     ("54f2d1fcc9bcadedd50398697618f7c34aceb9966a6cbaa99829eb64c0c1f3ca" "e11569fd7e31321a33358ee4b232c2d3cf05caccd90f896e1df6cab228191109" default)))
+ '(default-input-method "latin-prefix")
  '(fci-rule-color "#383838")
  '(nrepl-message-colors
    (quote
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)
