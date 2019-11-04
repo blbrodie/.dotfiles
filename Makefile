@@ -11,5 +11,7 @@ bash:
 tmux:
 	ln -s $$(pwd).tmux.conf ~/.tmux.conf
 
+install: install-emacs
+
 install-emacs:
 	brew cask install emacs

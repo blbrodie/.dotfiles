@@ -3,5 +3,5 @@
 Just run: 
 
 ```
-cd ~ && git clone git@github.com:blbrodie/.dotfiles.git && cd .dotfiles && make
+cd ~ && git clone git@github.com:blbrodie/.dotfiles.git && cd .dotfiles && make && make install
 ```
