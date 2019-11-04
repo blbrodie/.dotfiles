@@ -12,9 +12,6 @@
   (package-refresh-contents)
   (package-install 'use-package))
 
-;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
-(setq split-height-threshold nil)
-
 (defun shell1 () "Switch to or create *shell-1."
        (interactive) (shell "*shell-1*"))
 (defun shell2 () "Switch to or create *shell-2."
@@ -42,6 +39,9 @@
   (auto-package-update-maybe))
 
 (use-package company :ensure t)
+
+(use-package erlang :ensure t)
+
 
 (use-package spaceline
   :ensure t
@@ -228,9 +228,8 @@
 
 (use-package column-enforce-mode
   :ensure t
-  :hook (prog-mode . column-enforce-mode)
-  :config
-  (setq column-enforce-mode-column 80))
+  :init (setq column-enforce-mode-column 80)
+  :hook (prog-mode . column-enforce-mode))
 
 (use-package ws-butler
   :ensure t
@@ -304,6 +303,10 @@
 (setq show-trailing-whitespace t)
 (menu-bar-mode -1)
 (setq use-dialog-box nil)
+
+;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
+(setq split-height-threshold nil)
+
 
 ;; tags
 (setq tags-add-tables nil)
