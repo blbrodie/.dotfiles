@@ -26,6 +26,7 @@
 (global-set-key (kbd "C-c 2") 'shell2)
 (global-set-key (kbd "C-c 3") 'shell3)
 
+
 ;; use-package
 (eval-when-compile
   (require 'use-package))
@@ -56,6 +57,7 @@
   (setq evil-want-keybinding nil)
   :config
   (evil-mode 1)
+  (global-set-key (kbd "<f4>") 'evil-mode)
   (defalias #'forward-evil-WORD #'forward-evil-symbol))
 
 (use-package evil-collection
@@ -101,14 +103,18 @@
   (evil-snipe-mode 1)
   (evil-snipe-override-mode 1))
 
+(use-package groovy-mode :ensure t)
+
 (use-package projectile
   :ensure t
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :config
   (projectile-mode)
-  (projectile-tags-exclude-patterns)
-  (setq projectile-switch-project-action 'shell1))
+  (projectile-tags-exclude-patterns))
+
+(use-package ripgrep :ensure t)
+
 
 (use-package ace-window
   :ensure t
@@ -330,10 +336,8 @@
 (setq-default tab-width 2)
 
 ;; backups
-(setq backup-directory-alist
-      `((".*" . ,"~/.emacs.backups/")))
-(setq auto-save-file-name-transforms
-      `((".*" ,"~/.emacs.saves/" t)))
+(setq backup-directory-alist `((".*" . ,temporary-file-directory)))
+(setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
 
 (setq-default display-buffer-alist
               '(("*shell-?*" (display-buffer-reuse-window
@@ -363,7 +367,7 @@
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)

@@ -9,7 +9,7 @@ bash:
 	ln -s $$(pwd)/.bashrc ~/.bashrc
 
 tmux:
-	ln -s $$(pwd).tmux.conf ~/.tmux.conf
+	ln -s $$(pwd)/.tmux.conf ~/.tmux.conf
 
 install: install-emacs
 
