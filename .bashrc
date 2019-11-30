@@ -7,7 +7,8 @@ export CLICOLOR=1
 . /usr/local/opt/asdf/asdf.sh
 . /usr/local/opt/asdf/etc/bash_completion.d/asdf.bash
 
-export EDITOR='emacsclient -t --alternate-editor=""'
+# Don't set if already set by emacs
+export EDITOR=${EDITOR:='emacsclient -t --alternate-editor=""'}
 
 # build erlang with docs
 export KERL_BUILD_DOCS=yes
