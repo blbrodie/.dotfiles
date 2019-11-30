@@ -26,7 +26,6 @@
 (global-set-key (kbd "C-c 2") 'shell2)
 (global-set-key (kbd "C-c 3") 'shell3)
 
-
 ;; use-package
 (eval-when-compile
   (require 'use-package))
@@ -300,6 +299,11 @@
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 (setenv "PAGER" "cat")
+
+;; emacs client / server
+(load "server")
+(unless (server-running-p) (server-start))
+(setenv "EDITOR" "emacsclient")
 
 ;; look and feel
 (scroll-bar-mode -1)

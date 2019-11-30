@@ -1,4 +1,4 @@
-all: emacs bash tmux
+all: emacs bash tmux ctags
 
 emacs:
 	mkdir -p ~/.emacs.d
@@ -10,6 +10,9 @@ bash:
 
 tmux:
 	ln -s $$(pwd)/.tmux.conf ~/.tmux.conf
+
+ctags:
+	ln -s $$(pwd)/.ctags ~/.ctags
 
 install: install-emacs
 
