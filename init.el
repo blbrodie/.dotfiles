@@ -307,7 +307,6 @@
 ;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
 (setq split-height-threshold nil)
 
-
 ;; tags
 (setq tags-add-tables nil)
 
