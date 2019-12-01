@@ -14,3 +14,5 @@ export EDITOR=${EDITOR:='emacsclient -t --alternate-editor=""'}
 export KERL_BUILD_DOCS=yes
 
 alias tags='git ls-files | ctags -e -R --links=no -L-'
+
+export JAVA_HOME=$(/usr/libexec/java_home -Fv 12 2>/dev/null)

@@ -1,4 +1,5 @@
-;;; init.el --- Initialization file for Emacs.
+
+;;; INIT.el --- Initialization file for Emacs.
 ;;; Commentary:
 ;; Emacs Startup File --- initialization for Emacs
 
@@ -30,6 +31,9 @@
 (eval-when-compile
   (require 'use-package))
 
+;; (setq use-package-always-defer t)
+;; (setq use-package-always-ensure t)
+
 ;; use-package configurations
 (use-package auto-package-update
   :ensure t
@@ -41,7 +45,6 @@
 (use-package company :ensure t)
 
 (use-package erlang :ensure t)
-
 
 (use-package spaceline
   :ensure t
@@ -114,7 +117,6 @@
 
 (use-package ripgrep :ensure t)
 
-
 (use-package ace-window
   :ensure t
   :bind ("M-o" . ace-window)
@@ -145,12 +147,13 @@
 
 (use-package ivy
   :ensure t
+  :init
+  (ivy-mode 1)
   :bind
   (("C-c r" . ivy-resume)
    ("C-c s" . counsel-rg)
    ("C-s"   . swiper))
   :config
-  (ivy-mode 1)
   (setq ivy-height 20)
   (setq ivy-use-virtual-buffers t)
   (setq ivy-count-format "(%d/%d) ")
@@ -184,12 +187,15 @@
   (text-mode . flyspell-mode)
   (html-mode . (lambda() (flyspell-mode -1))))
 
-(use-package ensime
+(use-package meghanada
   :ensure t
-  :pin melpa-stable
   :hook (java-mode . (lambda()
-		       (setq ensime-startup-notification nil)
-		       (ensime))))
+            ;; meghanada-mode on
+            (meghanada-mode t)
+            ;; enable telemetry
+            (meghanada-telemetry-enable t)
+            (flycheck-mode +1)
+            (setq c-basic-offset 2))))
 
 (use-package evil-org
   :ensure t
@@ -370,7 +376,7 @@
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)
