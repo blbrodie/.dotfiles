@@ -85,25 +85,25 @@
   :config
   (global-evil-surround-mode 1))
 
-(use-package evil-snipe
-  :ensure t
-  :after evil
-  :hook
-  (magit-mode . turn-off-evil-snipe-override-mode)
-  :config
-  (evil-define-key '(visual normal motion operator) evil-snipe-local-mode-map
-    "s" 'nil
-    "S" 'nil
-    "f" 'nil
-    "F" 'nil
-    "t" 'nil
-    "T" 'nil
-    "f" 'evil-snipe-s
-    "F" 'evil-snipe-S
-    "t" 'evil-snipe-x
-    "T" 'evil-snipe-X)
-  (evil-snipe-mode 1)
-  (evil-snipe-override-mode 1))
+;; (use-package evil-snipe
+;;   :ensure t
+;;   :after evil
+;;   :hook
+;;   (magit-mode . turn-off-evil-snipe-override-mode)
+;;   :config
+;;   (evil-define-key '(visual normal motion operator) evil-snipe-local-mode-map
+;;     "s" 'nil
+;;     "S" 'nil
+;;     "f" 'nil
+;;     "F" 'nil
+;;     "t" 'nil
+;;     "T" 'nil
+;;     "f" 'evil-snipe-s
+;;     "F" 'evil-snipe-S
+;;     "t" 'evil-snipe-x
+;;     "T" 'evil-snipe-X)
+;;   (evil-snipe-mode 1)
+;;   (evil-snipe-override-mode 1))
 
 (use-package groovy-mode :ensure t)
 
@@ -193,9 +193,8 @@
             ;; meghanada-mode on
             (meghanada-mode t)
             ;; enable telemetry
-            (meghanada-telemetry-enable t)
-            (flycheck-mode +1)
-            (setq c-basic-offset 2))))
+            ;; (meghanada-telemetry-enable t)
+            (flycheck-mode +1))))
 
 (use-package evil-org
   :ensure t
@@ -239,8 +238,9 @@
 
 (use-package column-enforce-mode
   :ensure t
-  :init (setq column-enforce-mode-column 80)
-  :hook (prog-mode . column-enforce-mode))
+  :config (setq column-enforce-mode-column 80)
+  :hook ((prog-mode . column-enforce-mode)
+         (sql-mode . (lambda () (column-enforce-mode -1)))))
 
 (use-package ws-butler
   :ensure t
@@ -339,7 +339,7 @@
 (setq shell-file-name "/bin/bash")
 (add-hook 'comint-mode-hook (lambda () (setq comint-process-echoes t)))
 
-;; text formatting
+;; tabs
 (electric-indent-mode 1)
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 2)
