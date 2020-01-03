@@ -28,8 +28,8 @@
 (global-set-key (kbd "C-c 3") 'shell3)
 
 ;; use-package
-(eval-when-compile
-  (require 'use-package))
+(eval-when-compile (require 'use-package))
+(require 'bind-key)
 
 ;; (setq use-package-always-defer t)
 ;; (setq use-package-always-ensure t)
@@ -44,7 +44,16 @@
 
 (use-package company :ensure t)
 
-(use-package erlang :ensure t)
+
+(use-package dumb-jump
+  :after evil
+  :ensure t
+  :commands (dumb-jump-go dumb-jump-quick-look)
+  :bind ("C-}" . dumb-jump-quick-look)
+  :init (evil-define-key 'normal 'global (kbd "C-]") 'dumb-jump-go)
+         (evil-define-key 'normal 'global (kbd "C-t") 'dumb-jump-back))
+
+(use-package erlang :defer t :ensure t)
 
 (use-package spaceline
   :ensure t
@@ -187,14 +196,14 @@
   (text-mode . flyspell-mode)
   (html-mode . (lambda() (flyspell-mode -1))))
 
-(use-package meghanada
-  :ensure t
-  :hook (java-mode . (lambda()
-            ;; meghanada-mode on
-            (meghanada-mode t)
-            ;; enable telemetry
-            ;; (meghanada-telemetry-enable t)
-            (flycheck-mode +1))))
+;; (use-package meghanada
+;;   :ensure t
+;;   :hook (java-mode . (lambda()
+;;             ;; meghanada-mode on
+;;             (meghanada-mode t)
+;;             ;; enable telemetry
+;;             (meghanada-telemetry-enable t)
+;;             (flycheck-mode +1))))
 
 (use-package evil-org
   :ensure t
@@ -309,6 +318,7 @@
 ;; emacs client / server
 (load "server")
 (unless (server-running-p) (server-start))
+
 (setenv "EDITOR" "emacsclient")
 
 ;; look and feel
@@ -376,7 +386,7 @@
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)

@@ -13,6 +13,8 @@ export EDITOR=${EDITOR:='emacsclient -t --alternate-editor=""'}
 # build erlang with docs
 export KERL_BUILD_DOCS=yes
 
-alias tags='git ls-files | ctags -e -R --links=no -L-'
+alias tags='git ls-files | ctags --extra=+q -e -R --links=no -L-'
+
+alias app='cd ~/Documents/development/app'
 
 export JAVA_HOME=$(/usr/libexec/java_home -Fv 12 2>/dev/null)
