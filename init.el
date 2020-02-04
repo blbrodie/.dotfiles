@@ -44,14 +44,16 @@
 
 (use-package company :ensure t)
 
-
 (use-package dumb-jump
   :after evil
   :ensure t
   :commands (dumb-jump-go dumb-jump-quick-look)
   :bind ("C-}" . dumb-jump-quick-look)
-  :init (evil-define-key 'normal 'global (kbd "C-]") 'dumb-jump-go)
-         (evil-define-key 'normal 'global (kbd "C-t") 'dumb-jump-back))
+  :init
+  (evil-define-key 'normal 'global (kbd "C-]") 'dumb-jump-go)
+  (evil-define-key 'normal 'global (kbd "C-t") 'dumb-jump-back)
+  :config
+  (setq dumb-jump-selector 'ivy))
 
 (use-package erlang :defer t :ensure t)
 
@@ -72,14 +74,14 @@
   (defalias #'forward-evil-WORD #'forward-evil-symbol))
 
 (use-package evil-collection
-  :after evil
   :ensure t
+  :after evil
   :config
   (evil-collection-init))
 
 (use-package magit
-  :after (evil)
   :ensure t
+  :after (evil)
   :bind ("C-x g" . magit-status)
   :config
   (global-magit-file-mode))
@@ -93,26 +95,6 @@
   :after evil
   :config
   (global-evil-surround-mode 1))
-
-;; (use-package evil-snipe
-;;   :ensure t
-;;   :after evil
-;;   :hook
-;;   (magit-mode . turn-off-evil-snipe-override-mode)
-;;   :config
-;;   (evil-define-key '(visual normal motion operator) evil-snipe-local-mode-map
-;;     "s" 'nil
-;;     "S" 'nil
-;;     "f" 'nil
-;;     "F" 'nil
-;;     "t" 'nil
-;;     "T" 'nil
-;;     "f" 'evil-snipe-s
-;;     "F" 'evil-snipe-S
-;;     "t" 'evil-snipe-x
-;;     "T" 'evil-snipe-X)
-;;   (evil-snipe-mode 1)
-;;   (evil-snipe-override-mode 1))
 
 (use-package groovy-mode :ensure t)
 
@@ -173,7 +155,7 @@
 	  (t . ivy--regex-fuzzy)))
   (setq projectile-completion-system 'ivy)
   (setq magit-completing-read-function 'ivy-completing-read)
-  (setq counsel-rg-base-command "rg -S -M 512 --no-heading --line-number --color never %s .")
+  ;; (setq counsel-rg-base-command "rg -S -M 512 --no-heading --line-number --color never %s .")
   (setq counsel-ag-base-command "ag -W 256 --nocolor --nogroup %s"))
 
 
@@ -196,13 +178,25 @@
   (text-mode . flyspell-mode)
   (html-mode . (lambda() (flyspell-mode -1))))
 
+(use-package yasnippet
+  :ensure t
+  :config (yas-global-mode 1))
+
+;; (use-package lsp-mode :ensure t)
+;; (use-package lsp-ui :ensure t :after lsp-mode)
+;; (use-package company-lsp :ensure t :after company)
+;; (use-package lsp-java
+;;   :ensure t
+;;   :after lsp-mode
+;;   :hook (java-mode . lsp))
+
 ;; (use-package meghanada
 ;;   :ensure t
 ;;   :hook (java-mode . (lambda()
 ;;             ;; meghanada-mode on
 ;;             (meghanada-mode t)
 ;;             ;; enable telemetry
-;;             (meghanada-telemetry-enable t)
+;;             ;; (meghanada-telemetry-enable t)
 ;;             (flycheck-mode +1))))
 
 (use-package evil-org
@@ -332,6 +326,7 @@
 
 ;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
 (setq split-height-threshold nil)
+(setq split-width-threshold 200)
 
 ;; tags
 (setq tags-add-tables nil)
@@ -353,6 +348,7 @@
 (electric-indent-mode 1)
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 2)
+(setq-default c-basic-offset 2)
 
 ;; backups
 (setq backup-directory-alist `((".*" . ,temporary-file-directory)))

@@ -15,6 +15,19 @@ export KERL_BUILD_DOCS=yes
 
 alias tags='git ls-files | ctags --extra=+q -e -R --links=no -L-'
 
-alias app='cd ~/Documents/development/app'
+export JAVA_HOME=$(/usr/libexec/java_home -Fv 13 2>/dev/null)
 
-export JAVA_HOME=$(/usr/libexec/java_home -Fv 12 2>/dev/null)
+if type brew &>/dev/null; then
+  HOMEBREW_PREFIX="$(brew --prefix)"
+  if [[ -r "${HOMEBREW_PREFIX}/etc/profile.d/bash_completion.sh" ]]; then
+    source "${HOMEBREW_PREFIX}/etc/profile.d/bash_completion.sh"
+  else
+    for COMPLETION in "${HOMEBREW_PREFIX}/etc/bash_completion.d/"*; do
+      [[ -r "$COMPLETION" ]] && source "$COMPLETION"
+    done
+  fi
+fi
+
+function gitname {
+  git config --replace-all user.name $1
+}
