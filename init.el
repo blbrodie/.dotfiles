@@ -23,9 +23,9 @@
 (global-set-key (kbd "C-1") 'shell1)
 (global-set-key (kbd "C-2") 'shell2)
 (global-set-key (kbd "C-3") 'shell3)
-(global-set-key (kbd "C-c 1") 'shell1)
-(global-set-key (kbd "C-c 2") 'shell2)
-(global-set-key (kbd "C-c 3") 'shell3)
+(global-set-key (kbd "M-1") 'shell1)
+(global-set-key (kbd "M-2") 'shell2)
+(global-set-key (kbd "M-3") 'shell3)
 
 ;; use-package
 (eval-when-compile (require 'use-package))
@@ -72,6 +72,8 @@
   (evil-mode 1)
   (global-set-key (kbd "<f4>") 'evil-mode)
   (defalias #'forward-evil-WORD #'forward-evil-symbol))
+
+(global-set-key (kbd "C-;") 'evil-mode)
 
 (use-package evil-collection
   :ensure t
