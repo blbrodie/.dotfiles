@@ -31,3 +31,5 @@ fi
 function gitname {
   git config --replace-all user.name $1
 }
+
+alias mysql="mysql -A"
