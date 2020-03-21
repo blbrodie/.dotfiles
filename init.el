@@ -12,21 +12,6 @@
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
-
-(defun shell1 () "Switch to or create *shell-1."
-       (interactive) (shell "*shell-1*"))
-(defun shell2 () "Switch to or create *shell-2."
-       (interactive) (shell "*shell-2*"))
-(defun shell3 () "Switch to or create *shell-3."
-       (interactive) (shell "*shell-3*"))
-
-(global-set-key (kbd "C-1") 'shell1)
-(global-set-key (kbd "C-2") 'shell2)
-(global-set-key (kbd "C-3") 'shell3)
-(global-set-key (kbd "M-1") 'shell1)
-(global-set-key (kbd "M-2") 'shell2)
-(global-set-key (kbd "M-3") 'shell3)
-
 ;; use-package
 (eval-when-compile (require 'use-package))
 (require 'bind-key)
@@ -42,9 +27,36 @@
   (setq auto-package-update-hide-results t)
   (auto-package-update-maybe))
 
+
+(use-package ace-window
+  :ensure t
+  :bind ("M-o" . ace-window)
+  :config
+  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+  ;; (setq aw-background nil)
+  )
+
+
+(use-package ag
+  :ensure t
+  :hook (ag-mode . wgrep-ag-setup)
+  :config
+  (setq ag-highlight-search t)
+  (setq ag-arguments (cons "-W 256" ag-arguments)))
+
+(use-package column-enforce-mode
+  :ensure t
+  :config (setq column-enforce-mode-column 80)
+  :hook ((prog-mode . column-enforce-mode)
+         (sql-mode . (lambda () (column-enforce-mode -1)))))
+
 (use-package company :ensure t)
 
-(use-package elm-mode :ensure t)
+(use-package counsel
+  :ensure t
+  :after ivy
+  :config
+  (counsel-mode))
 
 (use-package dumb-jump
   :after evil
@@ -57,14 +69,16 @@
   :config
   (setq dumb-jump-selector 'ivy))
 
-(use-package erlang :defer t :ensure t)
-
-(use-package spaceline
+(use-package elixir-mode
   :ensure t
-  :config
-  (setq powerline-default-separator 'contour)
-  (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
-  (spaceline-spacemacs-theme))
+  :hook
+  (elixir-mode . (lambda ()
+                   (setq column-enforce-column 80)
+                   (column-enforce-mode))))
+
+(use-package elm-mode :ensure t)
+
+(use-package erlang :defer t :ensure t)
 
 (use-package evil
   :ensure t
@@ -75,20 +89,16 @@
   (global-set-key (kbd "<f4>") 'evil-mode)
   (defalias #'forward-evil-WORD #'forward-evil-symbol))
 
-(global-set-key (kbd "C-;") 'evil-mode)
-
 (use-package evil-collection
   :ensure t
   :after evil
   :config
   (evil-collection-init))
 
-(use-package magit
+(use-package evil-org
   :ensure t
-  :after (evil)
-  :bind ("C-x g" . magit-status)
-  :config
-  (global-magit-file-mode))
+  :after evil
+  :hook (org-mode . evil-org-mode))
 
 (use-package evil-magit
   :after (evil magit)
@@ -100,45 +110,44 @@
   :config
   (global-evil-surround-mode 1))
 
-(use-package groovy-mode :ensure t)
-
-(use-package projectile
+(use-package exec-path-from-shell
   :ensure t
-  :bind-keymap
-  ("C-c p" . projectile-command-map)
   :config
-  (projectile-mode)
-  (projectile-tags-exclude-patterns))
+  (when (memq window-system '(mac ns x))
+    (exec-path-from-shell-initialize)))
 
-(use-package ripgrep :ensure t)
-
-(use-package ace-window
-  :ensure t
-  :bind ("M-o" . ace-window)
-  :config
-  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
-  ;; (setq aw-background nil)
-  )
+(use-package flx-ido :ensure t)
+  ;; (ido-mode 1)
+  ;; (flx-ido-mode 1)
+  ;; (setq ido-everywhere t)
+  ;; (setq ido-enable-flex-matching t)
+  ;; (setq ido-use-faces nil)
+  ;; (setq ido-use-filename-at-point 'guess)
+  ;; (setq ido-use-url-at-point t))
 
 (use-package flycheck
   :ensure t
   :hook
   (ruby-mode . (lambda ()
                  (setq-local flycheck-command-wrapper-function
-                             (lambda (command)
-                               (append '("bundle" "exec") command)))))
+                    (lambda (command)
+                        (append '("bundle" "exec") command)))))
   :config
   (global-flycheck-mode))
 
-(use-package restclient
+(use-package flyspell
+  :ensure t
+  :hook
+  (text-mode . flyspell-mode)
+  (html-mode . (lambda() (flyspell-mode -1))))
+
+
+(use-package gnutls
   :ensure t
   :config
-  (setq restclient-inhibit-cookies t))
+  (add-to-list 'gnutls-trustfiles "/usr/local/etc/openssl/cert.pem"))
 
-(use-package web-mode
-  :ensure t
-  :mode "\\.erb\\'"
-  :config (setq web-mode-markup-indent-offset 2))
+(use-package groovy-mode :ensure t)
 
 (use-package ivy
   :ensure t
@@ -162,97 +171,26 @@
   ;; (setq counsel-rg-base-command "rg -S -M 512 --no-heading --line-number --color never %s .")
   (setq counsel-ag-base-command "ag -W 256 --nocolor --nogroup %s"))
 
-
-(use-package counsel
-  :ensure t
-  :after ivy
-  :config
-  (counsel-mode))
-
-(use-package elixir-mode
-  :ensure t
-  :hook
-  (elixir-mode . (lambda ()
-                   (setq column-enforce-column 80)
-                   (column-enforce-mode))))
-
-(use-package flyspell
-  :ensure t
-  :hook
-  (text-mode . flyspell-mode)
-  (html-mode . (lambda() (flyspell-mode -1))))
-
-(use-package yasnippet
-  :ensure t
-  :config (yas-global-mode 1))
-
-;; (use-package lsp-mode :ensure t)
-;; (use-package lsp-ui :ensure t :after lsp-mode)
-;; (use-package company-lsp :ensure t :after company)
-;; (use-package lsp-java
-;;   :ensure t
-;;   :after lsp-mode
-;;   :hook (java-mode . lsp))
-
-;; (use-package meghanada
-;;   :ensure t
-;;   :hook (java-mode . (lambda()
-;;             ;; meghanada-mode on
-;;             (meghanada-mode t)
-;;             ;; enable telemetry
-;;             ;; (meghanada-telemetry-enable t)
-;;             (flycheck-mode +1))))
-
-(use-package evil-org
-  :ensure t
-  :after evil
-  :hook (org-mode . evil-org-mode))
-
-(use-package flx-ido :ensure t)
-  ;; (ido-mode 1)
-  ;; (flx-ido-mode 1)
-  ;; (setq ido-everywhere t)
-  ;; (setq ido-enable-flex-matching t)
-  ;; (setq ido-use-faces nil)
-  ;; (setq ido-use-filename-at-point 'guess)
-  ;; (setq ido-use-url-at-point t))
-
-(use-package string-inflection :ensure t)
-
-(use-package ag
-  :ensure t
-  :hook (ag-mode . wgrep-ag-setup)
-  :config
-  (setq ag-highlight-search t)
-  (setq ag-arguments (cons "-W 256" ag-arguments)))
-
-(use-package wgrep :ensure t)
-(use-package wgrep-ag
-  :ensure t
-  :after wgrep)
-
 (use-package json-mode
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
 
-(use-package rjsx-mode
-  :after (js2-mode js-mode)
-  :ensure t)
-(setq js-indent-level 2)
-(add-to-list 'auto-mode-alist '("\\.js\\'" . rjsx-mode))
-
-(use-package rubocop :ensure t)
-
-(use-package column-enforce-mode
+(use-package magit
   :ensure t
-  :config (setq column-enforce-mode-column 80)
-  :hook ((prog-mode . column-enforce-mode)
-         (sql-mode . (lambda () (column-enforce-mode -1)))))
-
-(use-package ws-butler
-  :ensure t
+  :after (evil)
+  :bind ("C-x g" . magit-status)
   :config
-  (ws-butler-global-mode))
+  (global-magit-file-mode))
+
+(use-package markdown-mode
+  :ensure t
+  :hook
+  (markdown-mode . auto-fill-mode)
+  (markdown-mode . display-line-numbers-mode)
+  (markdown-mode . (lambda() (setq-local fill-column 80)))
+  (markdown-mode . company-mode))
+
+(use-package midnight)
 
 (use-package org-present
   :ensure t
@@ -273,35 +211,82 @@
 			     (org-present-show-cursor)
 			     (org-present-read-write)))))
 
+(use-package projectile
+  :ensure t
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  :config
+  (projectile-mode)
+  (projectile-tags-exclude-patterns))
+
+(use-package restclient
+  :ensure t
+  :config
+  (setq restclient-inhibit-cookies t))
+
+(use-package ripgrep :ensure t)
+
+(use-package rjsx-mode
+  :after (js2-mode js-mode)
+  :ensure t)
+(setq js-indent-level 2)
+(add-to-list 'auto-mode-alist '("\\.js\\'" . rjsx-mode))
+
+(use-package rubocop :ensure t)
+
+(use-package spaceline
+  :ensure t
+  :config
+  (setq powerline-default-separator 'contour)
+  (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
+  (spaceline-spacemacs-theme))
+
+(use-package string-inflection :ensure t)
+
+(use-package web-mode
+  :ensure t
+  :mode "\\.erb\\'"
+  :config (setq web-mode-markup-indent-offset 2))
+
+(use-package wgrep :ensure t)
+
+(use-package wgrep-ag
+  :ensure t
+  :after wgrep)
+
+(use-package ws-butler
+  :ensure t
+  :config
+  (ws-butler-global-mode))
+
 (use-package yaml-mode :ensure t)
+
+(use-package yari :ensure t)
 
 (use-package zenburn-theme
   :ensure t
   :config (load-theme 'zenburn t))
 
-
-(use-package exec-path-from-shell
+(use-package zoom-window
   :ensure t
-  :config
-  (when (memq window-system '(mac ns x))
-    (exec-path-from-shell-initialize)))
+  :bind ("C-x C-z" . zoom-window-zoom)
+  :config (setq zoom-window-mode-line-color nil))
 
-(use-package gnutls
-  :ensure t
-  :config
-  (add-to-list 'gnutls-trustfiles "/usr/local/etc/openssl/cert.pem"))
+;; END OF USE-PACKAGE
 
-(use-package yari :ensure t)
+(defun shell1 () "Switch to or create *shell-1."
+       (interactive) (shell "*shell-1*"))
+(defun shell2 () "Switch to or create *shell-2."
+       (interactive) (shell "*shell-2*"))
+(defun shell3 () "Switch to or create *shell-3."
+       (interactive) (shell "*shell-3*"))
 
-(use-package midnight)
-
-(use-package markdown-mode
-  :ensure t
-  :hook
-  (markdown-mode . auto-fill-mode)
-  (markdown-mode . display-line-numbers-mode)
-  (markdown-mode . (lambda() (setq-local fill-column 80)))
-  (markdown-mode . company-mode))
+(global-set-key (kbd "C-1") 'shell1)
+(global-set-key (kbd "C-2") 'shell2)
+(global-set-key (kbd "C-3") 'shell3)
+(global-set-key (kbd "M-1") 'shell1)
+(global-set-key (kbd "M-2") 'shell2)
+(global-set-key (kbd "M-3") 'shell3)
 
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'prog-mode-hook 'company-mode)
@@ -328,6 +313,7 @@
 (setq show-trailing-whitespace t)
 (menu-bar-mode -1)
 (setq use-dialog-box nil)
+(set-frame-font "Source Code Pro 14" nil t)
 
 ;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
 (setq split-height-threshold nil)
@@ -388,7 +374,7 @@
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (eglot dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)
@@ -419,4 +405,4 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit default :stipple nil :background "#3F3F3F" :foreground "#DCDCCC" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 140 :width normal :foundry "nil" :family "Menlo")))))
+ '(default ((t (:foreground "#DCDCCC" :background "#3F3F3F")))))
