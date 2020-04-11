@@ -149,6 +149,7 @@
 
 (use-package groovy-mode :ensure t)
 
+;; ivy-immediate-done C-M-j
 (use-package ivy
   :ensure t
   :init
@@ -320,7 +321,7 @@
 (setq show-trailing-whitespace t)
 (menu-bar-mode -1)
 (setq use-dialog-box nil)
-(set-frame-font "Source Code Pro 14" nil t)
+(set-frame-font "Source Code Pro 16" nil t)
 
 ;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
 (setq split-height-threshold nil)
