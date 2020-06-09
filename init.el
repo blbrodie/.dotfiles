@@ -360,6 +360,7 @@
 (setq-default tab-width 2)
 (setq-default c-basic-offset 2)
 (setq-default css-indent-offset 2)
+(setq-default sh-basic-offset 2)
 
 ;; backups
 (setq backup-directory-alist `((".*" . ,temporary-file-directory)))
