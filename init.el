@@ -141,9 +141,20 @@
                     (lambda (command)
                         (append '("bundle" "exec") command)))))
   :config
+  (setq flycheck-display-errors-function
+        #'flycheck-display-error-messages-unless-error-list)
   (global-flycheck-mode))
 
-(use-package flycheck-elixir :ensure t)
+;; control the flycheck list errors buffer
+(add-to-list 'display-buffer-alist
+             `(,(rx bos "*Flycheck errors*" eos)
+              (display-buffer-reuse-window
+               display-buffer-in-side-window)
+              (side            . bottom)
+              (reusable-frames . visible)
+              (window-height   . 0.10)))
+
+;; (use-package flycheck-elixir :ensure t)
 
 (use-package flyspell
   :ensure t
