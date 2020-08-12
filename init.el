@@ -186,10 +186,12 @@
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
 
-(setq lsp-keymap-prefix "s-l")
 (use-package lsp-java :ensure t)
 (use-package lsp-mode
   :ensure t
+  :config
+    (setq lsp-log-io t)
+    (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook ((java-mode . lsp)))
 
 (use-package magit
@@ -333,12 +335,14 @@
 (scroll-bar-mode -1)
 (setq column-number-mode t)
 (show-paren-mode 1)
-;; (add-hook 'after-init-hook 'toggle-frame-fullscreen)
+(add-hook 'after-init-hook 'toggle-frame-maximized)
 (add-hook 'after-init-hook 'powerline-reset)
 (setq show-trailing-whitespace t)
 (menu-bar-mode -1)
 (setq use-dialog-box nil)
 (set-frame-font "Source Code Pro 16" nil t)
+;; (add-to-list 'default-frame-alist '(height . 120))
+;; (add-to-list 'default-frame-alist '(width . 80))
 
 ;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
 (setq split-height-threshold nil)
