@@ -132,7 +132,6 @@
   ;; (setq ido-use-faces nil)
   ;; (setq ido-use-filename-at-point 'guess)
   ;; (setq ido-use-url-at-point t))
-
 (use-package flycheck
   :ensure t
   :hook
@@ -198,12 +197,26 @@
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
 
 (use-package lsp-java :ensure t)
+
+(defun cond-add-elixir-credo ()
+  "Add elixir-credo to lsp next checker if 'major-mode' is elixir-mode."
+  (when (and (eq major-mode 'elixir-mode)
+             (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
+    (print (flycheck-get-next-checkers 'lsp))
+    (flycheck-add-next-checker 'lsp 'elixir-credo)))
+
 (use-package lsp-mode
   :ensure t
+  :init
+  (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
   :config
     (setq lsp-log-io t)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
-  :hook ((java-mode . lsp)))
+  :hook
+    (java-mode . lsp)
+    (elixir-mode . lsp)
+    (lsp-diagnostics-updated . cond-add-elixir-credo)
+  :commands (lsp))
 
 (use-package magit
   :ensure t
