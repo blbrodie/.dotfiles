@@ -1,4 +1,3 @@
-
 ;;; INIT.el --- Initialization file for Emacs.
 ;;; Commentary:
 ;; Emacs Startup File --- initialization for Emacs
@@ -17,7 +16,7 @@
 (require 'bind-key)
 
 ;; (setq use-package-always-defer t)
-;; (setq use-package-always-ensure t)
+(setq use-package-always-ensure t)
 
 ;; use-package configurations
 (use-package auto-package-update
@@ -36,7 +35,6 @@
   ;; (setq aw-background nil)
   )
 
-
 (use-package ag
   :ensure t
   :hook (ag-mode . wgrep-ag-setup)
@@ -44,10 +42,13 @@
   (setq ag-highlight-search t)
   (setq ag-arguments (cons "-W 256" ag-arguments)))
 
+(use-package browse-kill-ring :ensure t)
+
 (use-package column-enforce-mode
   :ensure t
   :config (setq column-enforce-mode-column 80)
   :hook ((prog-mode . column-enforce-mode)
+         (html-mode . column-enforce-mode)
          (sql-mode . (lambda () (column-enforce-mode -1)))))
 
 (use-package company :ensure t)
@@ -76,7 +77,9 @@
                    (setq column-enforce-column 80)
                    (column-enforce-mode))))
 
-(use-package elm-mode :ensure t)
+(use-package elm-mode
+  :ensure t
+  :config (setq elm-indent-offset 2))
 
 (use-package erlang :defer t :ensure t)
 
@@ -104,6 +107,11 @@
   :after (evil magit)
   :ensure t)
 
+(use-package evil-matchit
+  :ensure t
+  :after evil
+  :config (global-evil-matchit-mode 1))
+
 (use-package evil-surround
   :ensure t
   :after evil
@@ -124,7 +132,6 @@
   ;; (setq ido-use-faces nil)
   ;; (setq ido-use-filename-at-point 'guess)
   ;; (setq ido-use-url-at-point t))
-
 (use-package flycheck
   :ensure t
   :hook
@@ -133,7 +140,20 @@
                     (lambda (command)
                         (append '("bundle" "exec") command)))))
   :config
+  (setq flycheck-display-errors-function
+        #'flycheck-display-error-messages-unless-error-list)
   (global-flycheck-mode))
+
+;; control the flycheck list errors buffer
+(add-to-list 'display-buffer-alist
+             `(,(rx bos "*Flycheck errors*" eos)
+              (display-buffer-reuse-window
+               display-buffer-in-side-window)
+              (side            . bottom)
+              (reusable-frames . visible)
+              (window-height   . 0.10)))
+
+;; (use-package flycheck-elixir :ensure t)
 
 (use-package flyspell
   :ensure t
@@ -172,16 +192,31 @@
   ;; (setq counsel-rg-base-command "rg -S -M 512 --no-heading --line-number --color never %s .")
   (setq counsel-ag-base-command "ag -W 256 --nocolor --nogroup %s"))
 
-(use-package java-imports
-  :ensure t
-  :config
-  (setq java-imports-find-block-function 'java-imports-find-place-sorted-block)
-  :bind ("C-c i" . java-imports-add-import-dwim)
-  :hook (java-mode . java-imports-scan-file))
-
 (use-package json-mode
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
+
+(use-package lsp-java :ensure t)
+
+(defun cond-add-elixir-credo ()
+  "Add elixir-credo to lsp next checker if 'major-mode' is elixir-mode."
+  (when (and (eq major-mode 'elixir-mode)
+             (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
+    (print (flycheck-get-next-checkers 'lsp))
+    (flycheck-add-next-checker 'lsp 'elixir-credo)))
+
+(use-package lsp-mode
+  :ensure t
+  :init
+  (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
+  :config
+    (setq lsp-log-io t)
+    (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
+  :hook
+    (java-mode . lsp)
+    (elixir-mode . lsp)
+    (lsp-diagnostics-updated . cond-add-elixir-credo)
+  :commands (lsp))
 
 (use-package magit
   :ensure t
@@ -268,7 +303,9 @@
   :config
   (ws-butler-global-mode))
 
-(use-package yaml-mode :ensure t)
+(use-package yaml-mode
+  :ensure t
+  :hook (yaml-mode . display-line-numbers-mode))
 
 (use-package yari :ensure t)
 
@@ -276,13 +313,18 @@
   :ensure t
   :config (load-theme 'zenburn t))
 
-(use-package zoom-window
-  :ensure t
-  :bind ("C-x C-z" . zoom-window-zoom)
-  :config (setq zoom-window-mode-line-color nil))
+;; (use-package zoom-window
+;;   :ensure t
+;;   :bind ("C-x C-z" . zoom-window-zoom)
+;;   :config (setq zoom-window-mode-line-color nil))
 
 ;; END OF USE-PACKAGE
+(global-set-key (kbd "C-x C-z") 'maximize-window)
 
+;; file mode associations
+(add-to-list 'auto-mode-alist '("\\.jsp\\'" . html-mode))
+
+;; shell shortcuts
 (defun shell1 () "Switch to or create *shell-1."
        (interactive) (shell "*shell-1*"))
 (defun shell2 () "Switch to or create *shell-2."
@@ -297,6 +339,7 @@
 (global-set-key (kbd "M-2") 'shell2)
 (global-set-key (kbd "M-3") 'shell3)
 
+;; general hooks
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'prog-mode-hook 'company-mode)
 (add-hook 'ruby-mode-hook 'rubocop-mode)
@@ -317,12 +360,14 @@
 (scroll-bar-mode -1)
 (setq column-number-mode t)
 (show-paren-mode 1)
-;; (add-hook 'after-init-hook 'toggle-frame-fullscreen)
+(add-hook 'after-init-hook 'toggle-frame-maximized)
 (add-hook 'after-init-hook 'powerline-reset)
 (setq show-trailing-whitespace t)
 (menu-bar-mode -1)
 (setq use-dialog-box nil)
 (set-frame-font "Source Code Pro 16" nil t)
+;; (add-to-list 'default-frame-alist '(height . 120))
+;; (add-to-list 'default-frame-alist '(width . 80))
 
 ;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
 (setq split-height-threshold nil)
@@ -350,14 +395,18 @@
 (setq-default tab-width 2)
 (setq-default c-basic-offset 2)
 (setq-default css-indent-offset 2)
+(setq-default sh-basic-offset 2)
 
 ;; backups
 (setq backup-directory-alist `((".*" . ,temporary-file-directory)))
 (setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
 
-(setq-default display-buffer-alist
-              '(("*shell-?*" (display-buffer-reuse-window
-                              display-buffer-same-window))))
+;; lock files
+(setq create-lockfiles nil)
+
+(add-to-list 'display-buffer-alist
+              '("*shell-?*" (display-buffer-reuse-window
+                              display-buffer-same-window)))
 
 ;; babel
 (org-babel-do-load-languages
@@ -383,7 +432,7 @@
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)
