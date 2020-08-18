@@ -192,6 +192,7 @@
 
 (use-package markdown-mode
   :ensure t
+  :config (setq tab-width 2)
   :hook
   (markdown-mode . auto-fill-mode)
   (markdown-mode . display-line-numbers-mode)
