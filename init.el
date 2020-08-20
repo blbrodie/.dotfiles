@@ -62,13 +62,8 @@
 (use-package dumb-jump
   :after evil
   :ensure t
-  :commands (dumb-jump-go dumb-jump-quick-look)
-  :bind ("C-}" . dumb-jump-quick-look)
-  :init
-  (evil-define-key 'normal 'global (kbd "C-]") 'dumb-jump-go)
-  (evil-define-key 'normal 'global (kbd "C-t") 'dumb-jump-back)
   :config
-  (setq dumb-jump-selector 'ivy))
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
 
 (use-package elixir-mode
   :ensure t
@@ -161,7 +156,6 @@
   (text-mode . flyspell-mode)
   (html-mode . (lambda() (flyspell-mode -1))))
 
-
 (use-package gnutls
   :ensure t
   :config
@@ -202,7 +196,6 @@
   "Add elixir-credo to lsp next checker if 'major-mode' is elixir-mode."
   (when (and (eq major-mode 'elixir-mode)
              (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
-    (print (flycheck-get-next-checkers 'lsp))
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
 
 (use-package lsp-mode
@@ -210,7 +203,8 @@
   :init
   (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
   :config
-    (setq lsp-log-io t)
+    (setq lsp-log-io nil)
+    (setq lsp-enable-file-watchers nil)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (java-mode . lsp)
