@@ -67,6 +67,8 @@
 
 (use-package elixir-mode
   :ensure t
+  :bind (:map elixir-mode-map
+              ("C-c C-c f" . elixir-format))
   :hook
   (elixir-mode . (lambda ()
                    (setq column-enforce-column 80)
