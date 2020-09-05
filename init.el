@@ -42,6 +42,9 @@
   (setq ag-highlight-search t)
   (setq ag-arguments (cons "-W 256" ag-arguments)))
 
+(eval-after-load "artist"
+   '(define-key artist-mode-map [(down-mouse-3)] 'artist-mouse-choose-operation))
+
 (use-package browse-kill-ring :ensure t)
 
 (use-package column-enforce-mode
