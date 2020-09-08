@@ -98,10 +98,10 @@
   :config
   (evil-collection-init))
 
-(use-package evil-org
-  :ensure t
-  :after evil
-  :hook (org-mode . evil-org-mode))
+;; (use-package evil-org
+;;   :ensure t
+;;   :after evil
+;;   :hook (org-mode . evil-org-mode))
 
 (use-package evil-magit
   :after (evil magit)
@@ -431,7 +431,7 @@
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)
