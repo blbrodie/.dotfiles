@@ -42,6 +42,7 @@
   (setq ag-highlight-search t)
   (setq ag-arguments (cons "-W 256" ag-arguments)))
 
+(require 'artist)
 (eval-after-load "artist"
    '(define-key artist-mode-map [(down-mouse-3)] 'artist-mouse-choose-operation))
 
@@ -49,6 +50,7 @@
 
 (use-package column-enforce-mode
   :ensure t
+  :defines column-enforce-mode-column
   :config (setq column-enforce-mode-column 80)
   :hook ((prog-mode . column-enforce-mode)
          (html-mode . column-enforce-mode)
@@ -193,7 +195,6 @@
 	  (counsel-ag . ivy--regex-plus)
 	  (counsel-rg . ivy--regex-plus)
 	  (t . ivy--regex-fuzzy)))
-  (setq projectile-completion-system 'ivy)
   (setq magit-completing-read-function 'ivy-completing-read)
   ;; (setq counsel-rg-base-command "rg -S -M 512 --no-heading --line-number --color never %s .")
   (setq counsel-ag-base-command "ag -W 256 --nocolor --nogroup %s"))
@@ -244,23 +245,33 @@
 
 ;; org-mode
 (require 'org)
-(setq org-default-notes-file "~/Documents/gtd/inbox.org")
+(add-to-list 'org-modules 'org-habit)
+(setq org-directory "~/gtd")
+(setq org-default-notes-file "~/gtd/inbox.org")
 (setq org-agenda-files "~/.emacs.d/org-agenda-files")
+(setq org-outline-path-complete-in-steps nil)
+(setq org-refile-use-outline-path 'file)
+(setq org-refile-targets '((org-agenda-files :maxlevel . 1)))
 (setq org-todo-keywords
       '((sequence "TODO" "IN-PROGRESS" "DONE")))
 
 (require 'org-capture)
 (global-set-key "\C-cc" 'org-capture)
-(setq org-capture-templates '(("t" "TODO" entry (file "~/Documents/gtd/inbox.org")
-                               "* TODO %?\n %U\n %a")
-                              ("h" "Habit" entry (file "~/Documents/gtd/habits.org")
-                               "* TODO %?\n  SCHEDULED: %t\n  :PROPERTIES:\n  :STYLE: habit\n  :END:")))
+(setq org-capture-templates `(("t" "TODO" entry (file "inbox.org")
+                               ,(concat "* TODO %?\n"
+                                        "  %U\n"
+                                        "  %a"))
+                              ("h" "Habit" entry (file "habits.org")
+                               ,(concat "* TODO %?\n"
+                                        "  SCHEDULED: %t\n"
+                                        "  :PROPERTIES:\n"
+                                        "  :STYLE: habit\n"
+                                        "  :END:"))))
 
 (require 'org-clock)
 (setq org-clock-idle-time 10)
 (require 'org-agenda)
 (global-set-key "\C-ca" 'org-agenda)
-(add-to-list 'org-modules 'org-habit)
 (setq org-agenda-window-setup 'current-window)
 (setq org-agenda-todo-ignore-scheduled 'future)
 
@@ -288,6 +299,7 @@
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :config
+  (setq projectile-completion-system 'ivy)
   (projectile-mode)
   (projectile-tags-exclude-patterns))
 
@@ -405,6 +417,7 @@
 (setq tags-add-tables nil)
 
 ;; ediff
+(require 'ediff)
 (setq ediff-window-setup-function 'ediff-setup-windows-plain)
 
 ;; ispell
@@ -458,12 +471,9 @@
  '(nrepl-message-colors
    (quote
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
- '(org-agenda-files
-   (quote
-    ("~/Documents/gtd/habits.org" "~/Documents/gtd/inbox.org" "~/Documents/cais.org")))
  '(package-selected-packages
    (quote
-    (column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (evil-org column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)
