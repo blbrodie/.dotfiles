@@ -222,6 +222,7 @@
   :hook
     (java-mode . lsp)
     (elixir-mode . lsp)
+    (elm-mode . lsp)
     (lsp-diagnostics-updated . cond-add-elixir-credo)
   :commands (lsp))
 
