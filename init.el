@@ -373,7 +373,19 @@ URL should be a vaid Airmail message url retrieved from Airmail with
 (global-set-key (kbd "C-x C-z") 'maximize-window)
 
 ;; file mode associations
+(add-to-list 'auto-mode-alist '("\\.log\\'" . auto-revert-tail-mode))
 (add-to-list 'auto-mode-alist '("\\.jsp\\'" . html-mode))
+(fset 'perl-mode 'cperl-mode)
+
+(defun copy-file-name-to-clipboard ()
+  "Copy the current buffer file name to the clipboard."
+  (interactive)
+  (let ((filename (if (equal major-mode 'dired-mode)
+                      default-directory
+                    (buffer-file-name))))
+    (when filename
+      (kill-new filename)
+      (message "Copied buffer file name '%s' to the clipboard." filename))))
 
 ;; shell shortcuts
 (defun shell1 () "Switch to or create *shell-1."
@@ -389,6 +401,9 @@ URL should be a vaid Airmail message url retrieved from Airmail with
 (global-set-key (kbd "M-1") 'shell1)
 (global-set-key (kbd "M-2") 'shell2)
 (global-set-key (kbd "M-3") 'shell3)
+
+(global-set-key (kbd "M-g") 'goto-line) ; For Simon
+(global-set-key (kbd "C-x C-b") 'ivy-switch-buffer)
 
 ;; general hooks
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -448,7 +463,7 @@ URL should be a vaid Airmail message url retrieved from Airmail with
 (setq-default c-basic-offset 2)
 (setq-default css-indent-offset 2)
 (setq-default sh-basic-offset 2)
-
+(setq-default cperl-indent-level 2)
 ;; backups
 (setq backup-directory-alist `((".*" . ,temporary-file-directory)))
 (setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))

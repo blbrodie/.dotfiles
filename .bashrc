@@ -28,9 +28,11 @@ if type brew &>/dev/null; then
   fi
 fi
 
+eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
+
 function gitname {
   git config --replace-all user.name $1
 }
 
-
+# shellcheck source=~/.bashrc.local
 source ~/.bashrc.local
