@@ -246,6 +246,7 @@
 
 ;; org-mode
 (require 'org)
+(add-hook 'org-mode-hook 'auto-revert-mode)
 (add-to-list 'org-modules 'org-habit)
 (setq org-directory "~/gtd")
 (setq org-default-notes-file "~/gtd/inbox.org")
