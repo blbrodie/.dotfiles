@@ -205,7 +205,7 @@
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
 
-(use-package lsp-java :ensure t)
+;; (use-package lsp-java :ensure t)
 
 (defun cond-add-elixir-credo ()
   "Add elixir-credo to lsp next checker if 'major-mode' is elixir-mode."
@@ -213,20 +213,20 @@
              (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
 
-(use-package lsp-mode
-  :ensure t
-  :init
-  (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
-  :config
-    (setq lsp-log-io nil)
-    (setq lsp-enable-file-watchers nil)
-    (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
-  :hook
-    (java-mode . lsp)
-    (elixir-mode . lsp)
-    (elm-mode . lsp)
-    (lsp-diagnostics-updated . cond-add-elixir-credo)
-  :commands (lsp))
+;; (use-package lsp-mode
+;;   :ensure t
+;;   :init
+;;   (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
+;;   :config
+;;     (setq lsp-log-io nil)
+;;     (setq lsp-enable-file-watchers nil)
+;;     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
+;;   :hook
+;;     (java-mode . lsp)
+;;     (elixir-mode . lsp)
+;;     (elm-mode . lsp)
+;;     (lsp-diagnostics-updated . cond-add-elixir-credo)
+;;   :commands (lsp))
 
 (use-package magit
   :ensure t
@@ -541,5 +541,5 @@ URL should be a vaid Airmail message url retrieved from Airmail with
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:foreground "#DCDCCC" :background "#3F3F3F")))))
+ '(default ((t (:inherit nil :stipple nil :background "#3F3F3F" :foreground "#DCDCCC" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 140 :width normal :foundry "nil" :family "Menlo")))))
 (put 'dired-find-alternate-file 'disabled nil)
