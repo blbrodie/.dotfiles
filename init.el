@@ -231,9 +231,8 @@
 (use-package magit
   :ensure t
   :after (evil)
-  :bind ("C-x g" . magit-status)
-  :config
-  (global-magit-file-mode))
+  :bind (("C-x g" . magit-status)
+         ("C-c g" . magit-file-dispatch)))
 
 (use-package markdown-mode
   :ensure t
