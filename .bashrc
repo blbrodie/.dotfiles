@@ -38,7 +38,11 @@ function killport {
   lsof -i :"$1" | tail -1 | awk '{ print $2 }' | xargs kill
 }
 
-if [ -e /Users/benbrodie/.nix-profile/etc/profile.d/nix.sh ]; then . /Users/benbrodie/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer
+# Nix
+if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+fi
+# End Nix
 
 # shellcheck source=~/.bashrc.local
 source ~/.bashrc.local
