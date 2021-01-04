@@ -34,5 +34,11 @@ function gitname {
   git config --replace-all user.name $1
 }
 
+function killport {
+  lsof -i :"$1" | tail -1 | awk '{ print $2 }' | xargs kill
+}
+
+if [ -e /Users/benbrodie/.nix-profile/etc/profile.d/nix.sh ]; then . /Users/benbrodie/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer
+
 # shellcheck source=~/.bashrc.local
 source ~/.bashrc.local
