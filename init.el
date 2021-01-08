@@ -93,6 +93,7 @@
   (setq evil-want-keybinding nil)
   :config
   (evil-mode 1)
+  (evil-define-key 'normal 'global (kbd "C-]") 'evil-goto-definition)
   (global-set-key (kbd "<f4>") 'evil-mode)
   (defalias #'forward-evil-WORD #'forward-evil-symbol))
 
@@ -205,7 +206,7 @@
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
 
-;; (use-package lsp-java :ensure t)
+(use-package lsp-java :ensure t)
 
 (defun cond-add-elixir-credo ()
   "Add elixir-credo to lsp next checker if 'major-mode' is elixir-mode."
@@ -213,20 +214,20 @@
              (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
 
-;; (use-package lsp-mode
-;;   :ensure t
-;;   :init
-;;   (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
-;;   :config
-;;     (setq lsp-log-io nil)
-;;     (setq lsp-enable-file-watchers nil)
-;;     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
-;;   :hook
-;;     (java-mode . lsp)
-;;     (elixir-mode . lsp)
-;;     (elm-mode . lsp)
-;;     (lsp-diagnostics-updated . cond-add-elixir-credo)
-;;   :commands (lsp))
+(use-package lsp-mode
+  :ensure t
+  :init
+  (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
+  :config
+    (setq lsp-log-io nil)
+    (setq lsp-enable-file-watchers nil)
+    (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
+  :hook
+    (java-mode . lsp)
+    (elixir-mode . lsp)
+    (elm-mode . lsp)
+    (lsp-diagnostics-updated . cond-add-elixir-credo)
+  :commands (lsp))
 
 (use-package magit
   :ensure t
