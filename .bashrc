@@ -15,8 +15,6 @@ export KERL_BUILD_DOCS=yes
 
 alias tags='git ls-files | ctags --extra=+q -e -R --links=no -L-'
 
-export JAVA_HOME=$(/usr/libexec/java_home -Fv 13 2>/dev/null)
-
 if type brew &>/dev/null; then
   HOMEBREW_PREFIX="$(brew --prefix)"
   if [[ -r "${HOMEBREW_PREFIX}/etc/profile.d/bash_completion.sh" ]]; then
