@@ -219,12 +219,12 @@
   :init
   (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
   :config
-    (setq lsp-log-io nil)
+    (setq lsp-log-io t)
     (setq lsp-enable-file-watchers nil)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (java-mode . lsp)
-    (elixir-mode . lsp)
+    (elixir-mode . (lambda()(setq lsp-headerline-breadcrumb-enable nil)(lsp)))
     (elm-mode . lsp)
     (lsp-diagnostics-updated . cond-add-elixir-credo)
   :commands (lsp))
