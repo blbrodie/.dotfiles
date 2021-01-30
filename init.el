@@ -206,7 +206,10 @@
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
 
-(use-package kotlin-mode :ensure t)
+(use-package kotlin-mode
+  :ensure t
+  :config
+  (setq kotlin-tab-width 2))
 
 (use-package lsp-java :ensure t)
 
