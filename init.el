@@ -58,7 +58,9 @@
          (html-mode . column-enforce-mode)
          (sql-mode . (lambda () (column-enforce-mode -1)))))
 
-(use-package company :ensure t)
+(use-package company
+  :ensure t
+  :config (setq company-idle-delay 0.1))
 
 (use-package counsel
   :ensure t
