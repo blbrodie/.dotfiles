@@ -58,7 +58,9 @@
          (html-mode . column-enforce-mode)
          (sql-mode . (lambda () (column-enforce-mode -1)))))
 
-(use-package company :ensure t)
+(use-package company
+  :ensure t
+  :config (setq company-idle-delay 0.1))
 
 (use-package counsel
   :ensure t
@@ -208,8 +210,7 @@
 
 (use-package kotlin-mode
   :ensure t
-  :config
-  (setq kotlin-tab-width 2))
+  :config (setq kotlin-tab-width 2))
 
 (use-package lsp-java :ensure t)
 
@@ -226,11 +227,12 @@
   (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
   :config
     (setq lsp-log-io t)
+    (setq lsp-headerline-breadcrumb-enable nil)
     (setq lsp-enable-file-watchers nil)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (java-mode . lsp)
-    (elixir-mode . (lambda()(setq lsp-headerline-breadcrumb-enable nil)(lsp)))
+    (elixir-mode . lsp)
     (elm-mode . lsp)
     (lsp-diagnostics-updated . cond-add-elixir-credo)
   :commands (lsp))
@@ -329,8 +331,8 @@ URL should be a vaid Airmail message url retrieved from Airmail with
 
 (use-package restclient
   :ensure t
-  :config
-  (setq restclient-inhibit-cookies t))
+  :config (setq restclient-inhibit-cookies t)
+  :mode ("\\.http\\'" . restclient-mode))
 
 (use-package ripgrep :ensure t)
 
@@ -521,7 +523,7 @@ URL should be a vaid Airmail message url retrieved from Airmail with
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
+    (lsp-mode kotlin-mode undo-tree nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil)))
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(safe-local-variable-values (quote ((column-enforce-column . 120))))
  '(tool-bar-mode nil)
