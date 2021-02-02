@@ -232,6 +232,7 @@
     (setq lsp-enable-file-watchers nil)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
+    (kotlin-mode . lsp)
     (elixir-mode . lsp)
     (elm-mode . lsp)
     (java-mode . lsp)
