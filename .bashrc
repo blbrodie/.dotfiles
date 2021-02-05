@@ -36,11 +36,14 @@ function killport {
   lsof -i :"$1" | tail -1 | awk '{ print $2 }' | xargs kill
 }
 
+
 # Nix
 if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
   . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
 fi
 # End Nix
+
+eval "$(direnv hook bash)"
 
 # shellcheck source=~/.bashrc.local
 source ~/.bashrc.local
