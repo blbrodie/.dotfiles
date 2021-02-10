@@ -125,10 +125,6 @@
   (require 'evil-org-agenda)
   (evil-org-agenda-set-keys))
 
-(use-package evil-magit
-  :after (evil magit)
-  :ensure t)
-
 (use-package evil-matchit
   :ensure t
   :after evil
@@ -359,6 +355,8 @@ URL should be a vaid Airmail message url retrieved from Airmail with
   :ensure t)
 (setq js-indent-level 2)
 (add-to-list 'auto-mode-alist '("\\.js\\'" . rjsx-mode))
+(add-to-list 'auto-mode-alist '("\\.ts\\'" . rjsx-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . rjsx-mode))
 
 (use-package rubocop :ensure t)
 
@@ -472,7 +470,9 @@ URL should be a vaid Airmail message url retrieved from Airmail with
 (scroll-bar-mode -1)
 (setq column-number-mode t)
 (show-paren-mode 1)
-(add-hook 'after-init-hook 'toggle-frame-maximized)
+;; (add-hook 'after-init-hook 'toggle-frame-maximized)
+(add-to-list 'default-frame-alist '(height . 100))
+(add-to-list 'default-frame-alist '(width . 120))
 (add-hook 'after-init-hook 'powerline-reset)
 (setq show-trailing-whitespace t)
 (menu-bar-mode -1)
