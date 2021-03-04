@@ -4,8 +4,8 @@ export CLICOLOR=1
 
 [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
 
-. /usr/local/opt/asdf/asdf.sh
-. /usr/local/opt/asdf/etc/bash_completion.d/asdf.bash
+# . /usr/local/opt/asdf/asdf.sh
+# . /usr/local/opt/asdf/etc/bash_completion.d/asdf.bash
 
 # Don't set if already set by emacs
 export EDITOR=${EDITOR:='emacsclient -t --alternate-editor=""'}
