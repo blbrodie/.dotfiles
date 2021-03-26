@@ -49,17 +49,9 @@
 
 (use-package browse-kill-ring :ensure t)
 
-(use-package column-enforce-mode
-  :ensure t
-  :defines column-enforce-mode-column
-  :config (setq column-enforce-mode-column 80)
-  :hook ((prog-mode . column-enforce-mode)
-         (html-mode . column-enforce-mode)
-         (sql-mode . (lambda () (column-enforce-mode -1)))))
-
 (use-package company
   :ensure t
-  :config (setq company-idle-delay 0.5))
+  :config (setq company-idle-delay 1.000))
 
 (use-package counsel
   :ensure t
@@ -84,11 +76,7 @@
 (use-package elixir-mode
   :ensure t
   :bind (:map elixir-mode-map
-              ("C-c C-c f" . elixir-format))
-  :hook
-  (elixir-mode . (lambda ()
-                   (setq column-enforce-column 80)
-                   (column-enforce-mode))))
+              ("C-c C-c f" . elixir-format)))
 
 (use-package elm-mode
   :ensure t
@@ -230,12 +218,16 @@
   :ensure t
   :after (lsp-ui)
   :init
-  (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
-  (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
+    (setq gc-cons-threshold 100000000)
+    (setq read-process-output-max (* 1024 1024)) ;; 1mb
+    (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
+    (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
   :config
-    (setq lsp-log-io t)
-    (setq lsp-headerline-breadcrumb-enable nil)
+    (setq lsp-idle-delay 1.000)
+    (setq lsp-log-io nil)
+    (setq lsp-headerline-breadcrumb-enable t)
     (setq lsp-enable-file-watchers nil)
+    (setq lsp-ui-sideline-show-diagnostics nil)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (kotlin-mode . lsp)
@@ -283,16 +275,6 @@
 (setq org-refile-targets '((org-agenda-files :maxlevel . 1)))
 (setq org-todo-keywords
       '((sequence "TODO" "IN-PROGRESS" "DONE")))
-(org-add-link-type "airmail" 'org-airmail-open)
-
-(defun org-airmail-open (url)
-  "Visit the Airmail message referenced by URL.
-URL should be a vaid Airmail message url retrieved from Airmail with
-'Copy Message Link'."
-  (shell-command
-   ;; Note: org strips "airmail:" from the link URL
-   (concat "open -a '/Applications/Airmail.app' airmail:"
-           (shell-quote-argument url))))
 
 (require 'org-capture)
 (global-set-key "\C-cc" 'org-capture)
@@ -374,7 +356,11 @@ URL should be a vaid Airmail message url retrieved from Airmail with
 (use-package web-mode
   :ensure t
   :mode (("\\.erb\\'" . web-mode) ("\\.tsx\\'" . web-mode))
-  :config (setq web-mode-markup-indent-offset 2))
+  :config
+    (setq web-mode-markup-indent-offset 2)
+    (setq web-mode-css-indent-offset 2)
+    (setq web-mode-code-indent-offset 2)
+  )
 
 (use-package wgrep :ensure t)
 
@@ -450,8 +436,10 @@ URL should be a vaid Airmail message url retrieved from Airmail with
 (global-set-key (kbd "M-g") 'goto-line) ; For Simon
 (global-set-key (kbd "C-x C-b") 'ivy-switch-buffer)
 
-;; general hooks
+;; general
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(global-display-fill-column-indicator-mode)
+(setq-default fill-column 80)
 (add-hook 'prog-mode-hook 'company-mode)
 (add-hook 'ruby-mode-hook 'rubocop-mode)
 
@@ -506,9 +494,11 @@ URL should be a vaid Airmail message url retrieved from Airmail with
 
 ;; indentation
 (electric-indent-mode 1)
+(setq-default standard-indent 2)
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 2)
 (setq-default c-basic-offset 2)
+(setq-default js-indent-level 2)
 (setq-default css-indent-offset 2)
 (setq-default sh-basic-offset 2)
 (setq-default cperl-indent-level 2)
