@@ -53,11 +53,11 @@
   :ensure t
   :config (setq company-idle-delay 1.000))
 
-(use-package counsel
-  :ensure t
-  :after ivy
-  :config
-  (counsel-mode))
+;; (use-package counsel
+;;   :ensure t
+;;   :after ivy
+;;   :config
+;;   (counsel-mode))
 
 (use-package direnv
   :ensure t
@@ -89,6 +89,7 @@
   :init
   (setq evil-want-keybinding nil)
   :config
+  ;; (setq evil-undo-system 'undo-tree)
   (evil-mode 1)
   (evil-define-key 'normal 'global (kbd "C-]") 'evil-goto-definition)
   (global-set-key (kbd "<f4>") 'evil-mode)
@@ -177,26 +178,26 @@
 (use-package groovy-mode :ensure t)
 
 ;; ivy-immediate-done C-M-j
-(use-package ivy
-  :ensure t
-  :init
-  (ivy-mode 1)
-  :bind
-  (("C-c r" . ivy-resume)
-   ("C-c s" . counsel-rg)
-   ("C-s"   . swiper))
-  :config
-  (setq ivy-height 20)
-  (setq ivy-use-virtual-buffers t)
-  (setq ivy-count-format "(%d/%d) ")
-  (setq ivy-re-builders-alist
-	'((swiper . ivy--regex-plus)
-	  (counsel-ag . ivy--regex-plus)
-	  (counsel-rg . ivy--regex-plus)
-	  (t . ivy--regex-fuzzy)))
-  (setq magit-completing-read-function 'ivy-completing-read)
-  ;; (setq counsel-rg-base-command "rg -S -M 512 --no-heading --line-number --color never %s .")
-  (setq counsel-ag-base-command "ag -W 256 --nocolor --nogroup %s"))
+;; (use-package ivy
+;;   :ensure t
+;;   :init
+;;   (ivy-mode 1)
+;;   :bind
+;;   (("C-c r" . ivy-resume)
+;;    ("C-c s" . counsel-rg)
+;;    ("C-s"   . swiper))
+;;   :config
+;;   (setq ivy-height 20)
+;;   (setq ivy-use-virtual-buffers t)
+;;   (setq ivy-count-format "(%d/%d) ")
+;;   (setq ivy-re-builders-alist
+;; 	'((swiper . ivy--regex-plus)
+;; 	  (counsel-ag . ivy--regex-plus)
+;; 	  (counsel-rg . ivy--regex-plus)
+;; 	  (t . ivy--regex-fuzzy)))
+;;   (setq magit-completing-read-function 'ivy-completing-read)
+;;   ;; (setq counsel-rg-base-command "rg -S -M 512 --no-heading --line-number --color never %s .")
+;;   (setq counsel-ag-base-command "ag -W 256 --nocolor --nogroup %s"))
 
 (use-package json-mode
   :ensure t
@@ -227,7 +228,9 @@
     (setq lsp-log-io nil)
     (setq lsp-headerline-breadcrumb-enable t)
     (setq lsp-enable-file-watchers nil)
-    (setq lsp-ui-sideline-show-diagnostics nil)
+    (setq lsp-ui-sideline-enable t)
+    (setq lsp-ui-sideline-show-diagnostics t)
+    (setq lsp-ui-sideline-show-code-actions nil)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (kotlin-mode . lsp)
@@ -340,6 +343,10 @@
 
 (use-package rubocop :ensure t)
 
+(use-package selectrum
+  :ensure t
+  :config (selectrum-mode +1))
+
 (use-package spaceline
   :ensure t
   :config
@@ -352,6 +359,10 @@
 (use-package typescript-mode
   :ensure t
   :config (setq typescript-indent-level 2))
+
+(use-package undo-tree
+  :ensure t
+  :config (global-undo-tree-mode))
 
 (use-package web-mode
   :ensure t
@@ -438,7 +449,7 @@
 
 ;; general
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
-(global-display-fill-column-indicator-mode)
+(add-hook 'prog-mode-hook 'display-fill-column-indicator-mode)
 (setq-default fill-column 80)
 (add-hook 'prog-mode-hook 'company-mode)
 (add-hook 'ruby-mode-hook 'rubocop-mode)
@@ -534,7 +545,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)
