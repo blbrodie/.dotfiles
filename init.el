@@ -51,7 +51,7 @@
 
 (use-package company
   :ensure t
-  :config (setq company-idle-delay 1.000))
+  :config (setq company-idle-delay 0.500))
 
 ;; (use-package counsel
 ;;   :ensure t
@@ -64,7 +64,7 @@
   :init
   :config
   ;; (setq direnv-show-paths-in-summary nil)
-  (setq direnv-always-show-summary nil)
+  ;; (setq direnv-always-show-summary nil)
   (direnv-mode))
 
 (use-package dumb-jump
@@ -87,9 +87,9 @@
 (use-package evil
   :ensure t
   :init
+  (setq evil-undo-system `undo-tree)
   (setq evil-want-keybinding nil)
   :config
-  ;; (setq evil-undo-system 'undo-tree)
   (evil-mode 1)
   (evil-define-key 'normal 'global (kbd "C-]") 'evil-goto-definition)
   (global-set-key (kbd "<f4>") 'evil-mode)
@@ -207,7 +207,11 @@
   :ensure t
   :config (setq kotlin-tab-width 2))
 
-(use-package lsp-java :ensure t)
+(use-package lsp-java
+  :ensure t
+  :config
+  (setq lsp-java-vmargs '("-noverify" "-Xmx1G" "-XX:+UseG1GC" "-XX:+UseStringDeduplication"))
+  (setq lsp-java-import-gradle-version "6.8.1"))
 
 (defun cond-add-elixir-credo ()
   "Add elixir-credo to lsp next checker if 'major-mode' is elixir-mode."
@@ -217,19 +221,19 @@
 
 (use-package lsp-mode
   :ensure t
-  :after (lsp-ui)
+  ;; :after (lsp-ui)
   :init
     (setq gc-cons-threshold 100000000)
     (setq read-process-output-max (* 1024 1024)) ;; 1mb
     (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
-    (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
+    ;; (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
   :config
-    (setq lsp-idle-delay 1.000)
+    (setq lsp-idle-delay 0.500)
     (setq lsp-log-io nil)
     (setq lsp-headerline-breadcrumb-enable t)
     (setq lsp-enable-file-watchers nil)
     (setq lsp-ui-sideline-enable t)
-    (setq lsp-ui-sideline-show-diagnostics t)
+    (setq lsp-ui-sideline-show-diagnostics nil)
     (setq lsp-ui-sideline-show-code-actions nil)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
@@ -323,7 +327,7 @@
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :config
-  (setq projectile-completion-system 'ivy)
+  (setq projectile-completion-system 'default)
   (projectile-mode)
   (projectile-tags-exclude-patterns))
 
@@ -346,6 +350,12 @@
 (use-package selectrum
   :ensure t
   :config (selectrum-mode +1))
+
+(use-package selectrum-prescient
+  :ensure t
+  :config
+  (selectrum-prescient-mode +1)
+  (prescient-persist-mode +1))
 
 (use-package spaceline
   :ensure t
@@ -545,7 +555,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)
