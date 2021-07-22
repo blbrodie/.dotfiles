@@ -342,13 +342,6 @@
 
 (use-package ripgrep :ensure t)
 
-;; (use-package rjsx-mode
-;;   :after (js2-mode js-mode)
-;;   :ensure t)
-;; (setq js-indent-level 2)
-;; (add-to-list 'auto-mode-alist '("\\.js\\'" . rjsx-mode))
-;; (add-to-list 'auto-mode-alist '("\\.tsx\\'" . rjsx-mode))
-
 (use-package rubocop :ensure t)
 
 (use-package selectrum
