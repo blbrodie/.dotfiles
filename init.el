@@ -47,6 +47,15 @@
 (eval-after-load "artist"
    '(define-key artist-mode-map [(down-mouse-3)] 'artist-mouse-choose-operation))
 
+(use-package avy
+  :ensure t
+  :config
+  (avy-setup-default)
+  :bind
+  ("C-;" . avy-goto-word-1)
+  ("M-;" . avy-goto-char)
+  ("M-g" . avy-goto-line))
+
 (use-package browse-kill-ring :ensure t)
 
 (use-package company
