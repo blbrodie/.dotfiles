@@ -53,8 +53,8 @@
   (avy-setup-default)
   :bind
   ("C-;" . avy-goto-word-1)
-  ("M-;" . avy-goto-char)
-  ("M-g" . avy-goto-line))
+  ("C-'" . avy-goto-char)
+  ("C-c C-;" . avy-goto-line))
 
 (use-package browse-kill-ring :ensure t)
 
@@ -185,28 +185,6 @@
   (add-to-list 'gnutls-trustfiles "/usr/local/etc/openssl/cert.pem"))
 
 (use-package groovy-mode :ensure t)
-
-;; ivy-immediate-done C-M-j
-;; (use-package ivy
-;;   :ensure t
-;;   :init
-;;   (ivy-mode 1)
-;;   :bind
-;;   (("C-c r" . ivy-resume)
-;;    ("C-c s" . counsel-rg)
-;;    ("C-s"   . swiper))
-;;   :config
-;;   (setq ivy-height 20)
-;;   (setq ivy-use-virtual-buffers t)
-;;   (setq ivy-count-format "(%d/%d) ")
-;;   (setq ivy-re-builders-alist
-;; 	'((swiper . ivy--regex-plus)
-;; 	  (counsel-ag . ivy--regex-plus)
-;; 	  (counsel-rg . ivy--regex-plus)
-;; 	  (t . ivy--regex-fuzzy)))
-;;   (setq magit-completing-read-function 'ivy-completing-read)
-;;   ;; (setq counsel-rg-base-command "rg -S -M 512 --no-heading --line-number --color never %s .")
-;;   (setq counsel-ag-base-command "ag -W 256 --nocolor --nogroup %s"))
 
 (use-package json-mode
   :ensure t
