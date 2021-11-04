@@ -36,12 +36,7 @@ function killport {
   lsof -i :"$1" | tail -1 | awk '{ print $2 }' | xargs kill
 }
 
-
-# Nix
-if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
-  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-fi
-# End Nix
+function aws_profile { export AWS_PROFILE="$1"; }
 
 eval "$(direnv hook bash)"
 

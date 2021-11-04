@@ -228,6 +228,7 @@
     (elixir-mode . lsp)
     (elm-mode    . lsp)
     (java-mode   . lsp)
+    (js-mode     . lsp)
     (rjsx-mode   . lsp)
     (web-mode    . lsp)
     (lsp-mode    . lsp-enable-which-key-integration)
