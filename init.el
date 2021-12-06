@@ -65,12 +65,14 @@
 
 (use-package consult
   :ensure t
-  :bind (("C-x b" . consult-buffer)))
-;; (use-package counsel
-;;   :ensure t
-;;   :after ivy
-;;   :config
-;;   (counsel-mode))
+  :config
+    (autoload 'projectile-project-root "projectile")
+    (setq consult-project-root-function #'projectile-project-root)
+    (setq consult-narrow-key "<")
+  :bind (("C-x b" . consult-buffer)
+         ("C-s"   . consult-line)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)))
 
 (use-package direnv
   :ensure t
@@ -216,7 +218,6 @@
   :init
     (setq gc-cons-threshold 100000000)
     (setq read-process-output-max (* 1024 1024)) ;; 1mb
-    (add-to-list 'exec-path (concat user-emacs-directory "elixir-ls"))
     ;; (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
   :config
     (setq lsp-idle-delay 0.500)
@@ -226,6 +227,7 @@
     (setq lsp-ui-sideline-enable t)
     (setq lsp-ui-sideline-show-diagnostics nil)
     (setq lsp-ui-sideline-show-code-actions nil)
+    (setq lsp-elixir-suggest-specs nil)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (kotlin-mode . lsp)
@@ -544,7 +546,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)

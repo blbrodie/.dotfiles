@@ -40,5 +40,9 @@ function aws_profile { export AWS_PROFILE="$1"; }
 
 eval "$(direnv hook bash)"
 
+drm() { docker ps -a | awk '{print $1}' | grep -v CONTAINER | xargs docker rm -f; }
+drmi() { docker images | awk '{print $3}' | grep -v IMAGE | xargs docker rmi -f; }
+drmv() { docker volume rm $(docker volume ls -q); }
+
 # shellcheck source=~/.bashrc.local
 source ~/.bashrc.local
