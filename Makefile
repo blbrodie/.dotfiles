@@ -1,4 +1,7 @@
-all: emacs bash tmux ctags
+all: brew emacs bash tmux
+
+brew:
+	brew bundle
 
 emacs:
 	mkdir -p ~/.emacs.d
@@ -10,11 +13,3 @@ bash:
 
 tmux:
 	ln -s $$(pwd)/.tmux.conf ~/.tmux.conf
-
-ctags:
-	ln -s $$(pwd)/.ctags ~/.ctags
-
-install: install-emacs
-
-install-emacs:
-	brew cask install emacs
