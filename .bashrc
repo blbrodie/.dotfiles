@@ -15,6 +15,8 @@ export KERL_BUILD_DOCS=yes
 
 alias tags='git ls-files | ctags --extra=+q -e -R --links=no -L-'
 
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
 if type brew &>/dev/null; then
   HOMEBREW_PREFIX="$(brew --prefix)"
   if [[ -r "${HOMEBREW_PREFIX}/etc/profile.d/bash_completion.sh" ]]; then
@@ -26,8 +28,7 @@ if type brew &>/dev/null; then
   fi
 fi
 
-eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
-
+# eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
 function gitname {
   git config --replace-all user.name $1
 }

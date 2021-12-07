@@ -69,6 +69,8 @@
     (autoload 'projectile-project-root "projectile")
     (setq consult-project-root-function #'projectile-project-root)
     (setq consult-narrow-key "<")
+    (setq recentf-max-menu-items 100)
+    (setq recentf-max-saved-items 100)
   :bind (("C-x b" . consult-buffer)
          ("C-s"   . consult-line)
          ("M-s l" . consult-line)
