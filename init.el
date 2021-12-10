@@ -146,9 +146,7 @@
   :init
   :config
   (setq exec-path-from-shell-variables
-   '("PATH" "MANPATH" "IN_NIX_SHELL" "NIX_PROFILES" "NIX_PATH" "NIX_SSL_CERT_FILE"))
-  (when (memq window-system '(mac ns x))
-    (exec-path-from-shell-initialize)))
+   '("PATH" "MANPATH" "IN_NIX_SHELL" "NIX_PROFILES" "NIX_PATH" "NIX_SSL_CERT_FILE")))
 
 (use-package flx-ido :ensure t)
   ;; (ido-mode 1)
@@ -194,6 +192,8 @@
 
 (use-package groovy-mode :ensure t)
 
+(use-package graphql-mode :ensure t)
+
 (use-package json-mode
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
@@ -213,6 +213,10 @@
   (when (and (eq major-mode 'elixir-mode)
              (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
+
+;; (use-package lsp-python-ms
+;;   :ensure t
+;;   :init (setq lsp-python-ms-auto-install-server t))
 
 (use-package lsp-mode
   :ensure t
@@ -237,6 +241,7 @@
     (elm-mode    . lsp)
     (java-mode   . lsp)
     (js-mode     . lsp)
+    (python-mode . lsp)
     (rjsx-mode   . lsp)
     (web-mode    . lsp)
     (lsp-mode    . lsp-enable-which-key-integration)
@@ -506,6 +511,9 @@
 (setq shell-file-name "/bin/bash")
 (add-hook 'comint-mode-hook (lambda () (setq comint-process-echoes t)))
 
+(when (memq window-system '(mac ns x))
+  (exec-path-from-shell-initialize))
+
 ;; indentation
 (electric-indent-mode 1)
 (setq-default standard-indent 2)
@@ -548,7 +556,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(graphql-mode consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)
