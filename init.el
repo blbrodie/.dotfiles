@@ -85,7 +85,7 @@
   (direnv-mode))
 
 (use-package dumb-jump
-  :after evil
+  :after (evil)
   :ensure t
   :config
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
@@ -114,13 +114,13 @@
 
 (use-package evil-collection
   :ensure t
-  :after evil
+  :after (evil)
   :config
   (evil-collection-init))
 
 (use-package evil-org
   :ensure t
-  :after org
+  :after (org)
   :config
   (add-hook 'org-mode-hook 'evil-org-mode)
   (add-hook 'evil-org-mode-hook
@@ -132,12 +132,12 @@
 
 (use-package evil-matchit
   :ensure t
-  :after evil
+  :after (evil)
   :config (global-evil-matchit-mode 1))
 
 (use-package evil-surround
   :ensure t
-  :after evil
+  :after (evil)
   :config
   (global-evil-surround-mode 1))
 
@@ -237,7 +237,7 @@
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (kotlin-mode . lsp)
-    (elixir-mode . lsp)
+    (elixir-mode . (lambda() (direnv-update-environment) (lsp)))
     (elm-mode    . lsp)
     (java-mode   . lsp)
     (js-mode     . lsp)
@@ -419,7 +419,7 @@
 (add-to-list 'auto-mode-alist '("\\.jsp\\'" . html-mode))
 (fset 'perl-mode 'cperl-mode)
 
-(defun copy-project-relative-file-name ()
+(defun copy-project-relative-path ()
   "Copy the current buffer file name relative to project root."
   (interactive)
   (let ((filename (file-relative-name
@@ -427,7 +427,7 @@
     (kill-new filename)
     (message "Copied buffer file name '%s' to the clipboard" filename)))
 
-(defun copy-file-name ()
+(defun copy-path ()
   "Copy the current buffer file name to the clipboard."
   (interactive)
   (let ((filename (if (equal major-mode 'dired-mode)
