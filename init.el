@@ -509,7 +509,7 @@
 
 ;; shell
 (setq shell-file-name "/bin/bash")
-(add-hook 'comint-mode-hook (lambda () (setq comint-process-echoes t)))
+;; (add-hook 'comint-mode-hook (lambda () (setq comint-process-echoes t)))
 
 (when (memq window-system '(mac ns x))
   (exec-path-from-shell-initialize))
