@@ -37,7 +37,8 @@ function killport {
   lsof -i :"$1" | tail -1 | awk '{ print $2 }' | xargs kill
 }
 
-function aws_profile { export AWS_PROFILE="$1"; }
+# function aws_profile { export AWS_PROFILE="$1"; }
+export AWS_PROFILE=whatnot_eng_admin
 
 eval "$(direnv hook bash)"
 

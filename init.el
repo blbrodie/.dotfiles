@@ -67,7 +67,7 @@
   :ensure t
   :config
     (autoload 'projectile-project-root "projectile")
-    (setq consult-project-root-function #'projectile-project-root)
+    (setq consult-project-function (lambda (_) (projectile-project-root)))
     (setq consult-narrow-key "<")
     (setq recentf-max-menu-items 100)
     (setq recentf-max-saved-items 100)
@@ -103,10 +103,11 @@
 
 (use-package evil
   :ensure t
+  :after (undo-fu)
   :init
-  (setq evil-undo-system `undo-tree)
   (setq evil-want-keybinding nil)
   :config
+  (setq evil-undo-system 'undo-fu)
   (evil-mode 1)
   (evil-define-key 'normal 'global (kbd "C-]") 'evil-goto-definition)
   (global-set-key (kbd "<f4>") 'evil-mode)
@@ -193,6 +194,8 @@
 (use-package groovy-mode :ensure t)
 
 (use-package graphql-mode :ensure t)
+
+(use-package jq-mode :ensure t)
 
 (use-package json-mode
   :ensure t
@@ -338,7 +341,9 @@
 
 (use-package restclient
   :ensure t
-  :config (setq restclient-inhibit-cookies t)
+  :config
+  (setq restclient-inhibit-cookies t)
+  (autoload 'jq-set-var "jq-mode.el")
   :mode ("\\.http\\'" . restclient-mode))
 
 (use-package ripgrep :ensure t)
@@ -368,9 +373,10 @@
   :ensure t
   :config (setq typescript-indent-level 2))
 
-(use-package undo-tree
-  :ensure t
-  :config (global-undo-tree-mode))
+(use-package undo-fu :ensure t)
+;; (use-package undo-tree
+;;   :ensure t
+;;   :config (global-undo-tree-mode))
 
 (use-package web-mode
   :ensure t
@@ -556,7 +562,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(graphql-mode consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(jq-mode graphql-mode consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)
