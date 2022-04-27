@@ -92,8 +92,10 @@
 
 (use-package elixir-mode
   :ensure t
-  :bind (:map elixir-mode-map
-              ("C-c C-c f" . elixir-format)))
+  :bind (:map elixir-mode-map ("C-c C-c f" . elixir-format))
+  :init
+   (add-hook 'elixir-mode-hook
+            (lambda () (add-hook 'before-save-hook 'elixir-format nil t))))
 
 (use-package elm-mode
   :ensure t
