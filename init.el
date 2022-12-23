@@ -1,3 +1,4 @@
+
 ;;; INIT.el --- Initialization file for Emacs.
 ;;; Commentary:
 ;; Emacs Startup File --- initialization for Emacs
@@ -93,9 +94,35 @@
 (use-package elixir-mode
   :ensure t
   :bind (:map elixir-mode-map ("C-c C-c f" . elixir-format))
+  ;; :init (add-hook 'elixir-mode-hook
+  ;;                 (lambda () (add-hook 'before-save-hook 'elixir-format nil t)))
+  )
+
+(use-package emacs
   :init
-   (add-hook 'elixir-mode-hook
-            (lambda () (add-hook 'before-save-hook 'elixir-format nil t))))
+  ;; Add prompt indicator to `completing-read-multiple'.
+  ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
+  (defun crm-indicator (args)
+    (cons (format "[CRM%s] %s"
+                  (replace-regexp-in-string
+                   "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+                   crm-separator)
+                  (car args))
+          (cdr args)))
+  (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+
+  ;; Do not allow the cursor in the minibuffer prompt
+  (setq minibuffer-prompt-properties
+        '(read-only t cursor-intangible t face minibuffer-prompt))
+  (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+
+  ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
+  ;; Vertico commands are hidden in normal buffers.
+  ;; (setq read-extended-command-predicate
+  ;;       #'command-completion-default-include-p)
+
+  ;; Enable recursive minibuffers
+  (setq enable-recursive-minibuffers t))
 
 (use-package elm-mode
   :ensure t
@@ -106,7 +133,7 @@
 (use-package evil
   :ensure t
   :init
-  (setq evil-undo-system 'undo-fu)
+  ;; (setq evil-undo-system 'undo-redo)
   (setq evil-want-keybinding nil)
   :config
   (evil-mode 1)
@@ -279,6 +306,15 @@
   :ensure t
   :mode "\\.nix\\'")
 
+(use-package orderless
+  :init
+  ;; Configure a custom style dispatcher (see the Consult wiki)
+  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
+  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
+
 ;; org-mode
 (require 'org)
 (add-hook 'org-mode-hook 'auto-revert-mode)
@@ -307,6 +343,7 @@
 
 (require 'org-clock)
 (setq org-clock-idle-time 10)
+
 (require 'org-agenda)
 (global-set-key "\C-ca" 'org-agenda)
 (setq org-agenda-window-setup 'current-window)
@@ -330,7 +367,6 @@
 			     (org-remove-inline-images)
 			     (org-present-show-cursor)
 			     (org-present-read-write)))))
-
 (use-package projectile
   :ensure t
   :bind-keymap
@@ -351,16 +387,6 @@
 
 (use-package rubocop :ensure t)
 
-(use-package selectrum
-  :ensure t
-  :config (selectrum-mode +1))
-
-(use-package selectrum-prescient
-  :ensure t
-  :config
-  (selectrum-prescient-mode +1)
-  (prescient-persist-mode +1))
-
 (use-package spaceline
   :ensure t
   :config
@@ -374,10 +400,32 @@
   :ensure t
   :config (setq typescript-indent-level 2))
 
-(use-package undo-fu :ensure t)
+;; (use-package undo-fu :ensure t)
 ;; (use-package undo-tree
 ;;   :ensure t
 ;;   :config (global-undo-tree-mode))
+
+(use-package vertico
+  :init
+  (vertico-mode)
+
+  ;; Different scroll margin
+  ;; (setq vertico-scroll-margin 0)
+
+  ;; Show more candidates
+  ;; (setq vertico-count 20)
+
+  ;; Grow and shrink the Vertico minibuffer
+  ;; (setq vertico-resize t)
+
+  ;; Optionally enable cycling for `vertico-next' and `vertico-previous'.
+  ;; (setq vertico-cycle t)
+  )
+
+(use-package savehist
+  :init
+  (savehist-mode))
+
 
 (use-package web-mode
   :ensure t
@@ -412,6 +460,9 @@
 (use-package zenburn-theme
   :ensure t
   :config (load-theme 'zenburn t))
+
+(setq undo-strong-limit 1048576)
+(setq undo-limit 1048576)
 
 ;; (use-package zoom-window
 ;;   :ensure t
@@ -563,7 +614,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(magit jq-mode graphql-mode consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(forge magit jq-mode graphql-mode consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)
@@ -587,7 +638,8 @@
      (320 . "#8CD0D3")
      (340 . "#94BFF3")
      (360 . "#DC8CC3")))
- '(vc-annotate-very-old-color "#DC8CC3"))
+ '(vc-annotate-very-old-color "#DC8CC3")
+ '(warning-suppress-log-types '((emacs))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

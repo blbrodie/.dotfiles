@@ -37,8 +37,7 @@ function killport {
   lsof -i :"$1" | tail -1 | awk '{ print $2 }' | xargs kill
 }
 
-# function aws_profile { export AWS_PROFILE="$1"; }
-export AWS_PROFILE=whatnot_eng_admin
+# export AWS_PROFILE=whatnot_eng_admin
 
 eval "$(direnv hook bash)"
 
@@ -46,6 +45,21 @@ ds() { docker ps -a | awk '{print $1}' | grep -v CONTAINER | xargs docker stop; 
 drm() { docker ps -a | awk '{print $1}' | grep -v CONTAINER | xargs docker rm -f; }
 drmi() { docker images | awk '{print $3}' | grep -v IMAGE | xargs docker rmi -f; }
 drmv() { docker volume rm $(docker volume ls -q); }
+da() { ds && drm && drmi && drmv; }
+
+aws_profile() {
+    grep profile ~/.aws/config  | awk '{print $2}' | tr -d ']'
+    printf "Please select: "
+    read aws_profile
+
+    export AWS_PROFILE=$aws_profile
+}
+
+a_pod() {
+  kubectl exec -ti $(kubectl get pods | grep -v NAME | awk '{print $1}' | fzf) -- /bin/sh
+}
+
+export PATH=$PATH:$(brew --prefix)/opt/python/libexec/bin
 
 # shellcheck source=~/.bashrc.local
 source ~/.bashrc.local
