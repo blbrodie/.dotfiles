@@ -1,4 +1,3 @@
-
 ;;; INIT.el --- Initialization file for Emacs.
 ;;; Commentary:
 ;; Emacs Startup File --- initialization for Emacs
@@ -74,6 +73,7 @@
     (setq recentf-max-saved-items 100)
   :bind (("C-x b" . consult-buffer)
          ("C-s"   . consult-line)
+         ("C-c C-1"   . consult-flymake)
          ("M-s l" . consult-line)
          ("M-s L" . consult-line-multi)))
 
@@ -97,6 +97,17 @@
   ;; :init (add-hook 'elixir-mode-hook
   ;;                 (lambda () (add-hook 'before-save-hook 'elixir-format nil t)))
   )
+
+(use-package eglot
+  :ensure t
+  :config
+  (add-to-list 'eglot-server-programs '(elixir-mode "elixir-ls"))
+  :hook
+  (python-mode . (lambda() (flycheck-mode -1))) ;; eglot uses flymake
+  (python-mode . eglot-ensure)
+  (elixir-mode . eglot-ensure)
+  (go-mode . eglot-ensure))
+
 
 (use-package emacs
   :init
@@ -194,8 +205,8 @@
                         (append '("bundle" "exec") command)))))
   :config
   (setq flycheck-display-errors-function
-        #'flycheck-display-error-messages-unless-error-list)
-  (global-flycheck-mode))
+        #'flycheck-display-error-messages-unless-error-list))
+  ;; (global-flycheck-mode))
 
 ;; control the flycheck list errors buffer
 (add-to-list 'display-buffer-alist
@@ -213,6 +224,8 @@
   :hook
   (text-mode . flyspell-mode)
   (html-mode . (lambda() (flyspell-mode -1))))
+
+(use-package go-mode)
 
 (use-package gnutls
   :ensure t
@@ -268,13 +281,12 @@
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (kotlin-mode . lsp)
-    (elixir-mode . (lambda() (direnv-update-environment) (lsp)))
+    ;; (elixir-mode . (lambda() (direnv-update-environment) (lsp)))
     (elm-mode    . lsp)
     (java-mode   . lsp)
-    (js-mode     . lsp)
-    (python-mode . lsp)
-    (rjsx-mode   . lsp)
-    (web-mode    . lsp)
+    ;; (js-mode     . lsp)
+    ;; (rjsx-mode   . lsp)
+    ;; (web-mode    . lsp)
     (lsp-mode    . lsp-enable-which-key-integration)
     (lsp-diagnostics-updated . cond-add-elixir-credo)
   :commands (lsp))
@@ -394,6 +406,8 @@
   (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
   (spaceline-spacemacs-theme))
 
+(use-package swift-mode)
+
 (use-package string-inflection :ensure t)
 
 (use-package typescript-mode
@@ -511,7 +525,7 @@
 (global-set-key (kbd "M-3") 'shell3)
 
 (global-set-key (kbd "M-g") 'goto-line) ; For Simon
-(global-set-key (kbd "C-x C-b") 'ivy-switch-buffer)
+;; (global-set-key (kbd "C-x C-b") 'ivy-switch-buffer)
 
 ;; general
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
@@ -614,7 +628,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(forge magit jq-mode graphql-mode consult marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(swift-mode persistent-scratch go-mode eglot forge magit jq-mode graphql-mode marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)
