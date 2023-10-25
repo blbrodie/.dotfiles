@@ -37,15 +37,30 @@ function killport {
   lsof -i :"$1" | tail -1 | awk '{ print $2 }' | xargs kill
 }
 
+function curltime {
+  curl -w @- -o /dev/null -s "$@" <<'EOF'
+    time_namelookup:  %{time_namelookup}\n
+       time_connect:  %{time_connect}\n
+    time_appconnect:  %{time_appconnect}\n
+   time_pretransfer:  %{time_pretransfer}\n
+      time_redirect:  %{time_redirect}\n
+ time_starttransfer:  %{time_starttransfer}\n
+                    ----------\n
+         time_total:  %{time_total}\n
+EOF
+}
+
 # export AWS_PROFILE=whatnot_eng_admin
 
-eval "$(direnv hook bash)"
 
 ds() { docker ps -a | awk '{print $1}' | grep -v CONTAINER | xargs docker stop; }
 drm() { docker ps -a | awk '{print $1}' | grep -v CONTAINER | xargs docker rm -f; }
 drmi() { docker images | awk '{print $3}' | grep -v IMAGE | xargs docker rmi -f; }
 drmv() { docker volume rm $(docker volume ls -q); }
-da() { ds && drm && drmi && drmv; }
+nuke-docker() { ds && drm && drmi && drmv; }
+
+alias mbe="cd ~/development/whatnot_backend/"
+alias live="cd ~/development/whatnot_live/"
 
 aws_profile() {
     grep profile ~/.aws/config  | awk '{print $2}' | tr -d ']'
@@ -61,5 +76,13 @@ a_pod() {
 
 export PATH=$PATH:$(brew --prefix)/opt/python/libexec/bin
 
+# Nix
+if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+fi
+
+# End Nix
 # shellcheck source=~/.bashrc.local
 source ~/.bashrc.local
+
+eval "$(direnv hook bash)"

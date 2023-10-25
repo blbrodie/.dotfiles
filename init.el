@@ -1,4 +1,5 @@
 ;;; INIT.el --- Initialization file for Emacs.
+
 ;;; Commentary:
 ;; Emacs Startup File --- initialization for Emacs
 
@@ -52,8 +53,10 @@
   :ensure t
   :config
   (avy-setup-default)
+  (setq avy-timeout-seconds 0.1)
   :bind
-  ("C-;" . avy-goto-word-1)
+  ("C-," . avy-pop-mark)
+  ("C-;" . avy-goto-char-timer)
   ("C-'" . avy-goto-char)
   ("C-c C-;" . avy-goto-line))
 
@@ -77,6 +80,7 @@
          ("M-s l" . consult-line)
          ("M-s L" . consult-line-multi)))
 
+
 (use-package direnv
   :ensure t
   :init
@@ -98,15 +102,15 @@
   ;;                 (lambda () (add-hook 'before-save-hook 'elixir-format nil t)))
   )
 
-(use-package eglot
-  :ensure t
-  :config
-  (add-to-list 'eglot-server-programs '(elixir-mode "elixir-ls"))
-  :hook
-  (python-mode . (lambda() (flycheck-mode -1))) ;; eglot uses flymake
-  (python-mode . eglot-ensure)
-  (elixir-mode . eglot-ensure)
-  (go-mode . eglot-ensure))
+;; (use-package eglot
+;;   :ensure t
+;;   :config
+;;   (add-to-list 'eglot-server-programs '(elixir-mode "elixir-ls"))
+;;   :hook
+;;   ;; (python-mode . (lambda() (flycheck-mode -1))) ;; eglot uses flymake
+;;   ;; (python-mode . eglot-ensure)
+;;   (elixir-mode . eglot-ensure)
+;;   (go-mode . eglot-ensure))
 
 
 (use-package emacs
@@ -126,6 +130,7 @@
   (setq minibuffer-prompt-properties
         '(read-only t cursor-intangible t face minibuffer-prompt))
   (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+  (add-to-list 'image-types 'svg)
 
   ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
   ;; Vertico commands are hidden in normal buffers.
@@ -144,7 +149,7 @@
 (use-package evil
   :ensure t
   :init
-  ;; (setq evil-undo-system 'undo-redo)
+  (setq evil-undo-system 'undo-redo)
   (setq evil-want-keybinding nil)
   :config
   (evil-mode 1)
@@ -187,6 +192,9 @@
   :config
   (setq exec-path-from-shell-variables
    '("PATH" "MANPATH" "IN_NIX_SHELL" "NIX_PROFILES" "NIX_PATH" "NIX_SSL_CERT_FILE")))
+
+(use-package flymake
+  :bind ("C-c C-2"   . flymake-goto-next-error))
 
 (use-package flx-ido :ensure t)
   ;; (ido-mode 1)
@@ -258,14 +266,11 @@
              (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
 
-;; (use-package lsp-python-ms
-;;   :ensure t
-;;   :init (setq lsp-python-ms-auto-install-server t))
-
 (use-package lsp-mode
   :ensure t
   ;; :after (lsp-ui)
   :init
+    (setq lsp-elixir-server-command '("language_server.sh"))
     (setq gc-cons-threshold 100000000)
     (setq read-process-output-max (* 1024 1024)) ;; 1mb
     ;; (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
@@ -274,24 +279,35 @@
     (setq lsp-log-io nil)
     (setq lsp-headerline-breadcrumb-enable t)
     (setq lsp-enable-file-watchers nil)
-    (setq lsp-ui-sideline-enable t)
-    (setq lsp-ui-sideline-show-diagnostics nil)
-    (setq lsp-ui-sideline-show-code-actions nil)
     (setq lsp-elixir-suggest-specs nil)
+    (setq lsp-ui-sideline-enable nil)
+    (setq lsp-modeline-diagnostics-enable t)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
     (kotlin-mode . lsp)
-    ;; (elixir-mode . (lambda() (direnv-update-environment) (lsp)))
+    (elixir-mode . (lambda() (direnv-update-environment) (lsp)))
     (elm-mode    . lsp)
     (java-mode   . lsp)
     ;; (js-mode     . lsp)
     ;; (rjsx-mode   . lsp)
     ;; (web-mode    . lsp)
+    (python-mode . lsp)
     (lsp-mode    . lsp-enable-which-key-integration)
     (lsp-diagnostics-updated . cond-add-elixir-credo)
   :commands (lsp))
 
-(use-package lsp-ui :ensure t)
+(use-package lsp-ui
+  :ensure t
+  )
+
+(use-package lsp-pyright
+  :ensure t
+  :config
+  ;; (setq lsp-pyright-use-library-code-for-types t) ;; set this to nil if getting too many false positive type errors
+  :hook (python-mode . (lambda ()
+                          (require 'lsp-pyright)
+                          (lsp))))
+
 
 (use-package marginalia
   :bind (:map minibuffer-local-map ("M-A" . marginalia-cycle))
@@ -300,6 +316,7 @@
 (use-package magit
   :ensure t
   :after (evil)
+  :config (setq magit-list-refs-sortby "-committerdate")
   :bind (("C-x g" . magit-status)
          ("C-c g" . magit-file-dispatch)))
 
@@ -379,6 +396,7 @@
 			     (org-remove-inline-images)
 			     (org-present-show-cursor)
 			     (org-present-read-write)))))
+
 (use-package projectile
   :ensure t
   :bind-keymap
@@ -386,7 +404,36 @@
   :config
   (setq projectile-completion-system 'default)
   (projectile-mode)
-  (projectile-tags-exclude-patterns))
+  (projectile-tags-exclude-patterns)
+)
+
+(defvar last-qtest-buffer nil
+  "Store the last buffer used for 'qtest' command.")
+
+(defun qtest (buffer)
+  "Run `make qtest` in the selected or the last-used shell buffer."
+  (interactive
+   (list (completing-read
+          "Select shell buffer: "
+          (mapcar (lambda (buf)
+                    (buffer-name buf))
+                  (seq-filter (lambda (buf)
+                                (with-current-buffer buf
+                                  (derived-mode-p 'shell-mode)))
+                              (buffer-list)))
+          nil
+          t
+          (if (bufferp last-qtest-buffer)
+              (buffer-name last-qtest-buffer)
+            "*shell-1*"))))
+  (let ((test-path (buffer-file-name)))
+    (pop-to-buffer buffer)
+    (goto-char (point-max))
+    (insert (concat "make qtest t=" test-path))
+    (comint-send-input)
+    (setq last-qtest-buffer (get-buffer buffer))))
+
+(global-set-key (kbd "C-c q") 'qtest)
 
 (use-package restclient
   :ensure t
@@ -498,6 +545,16 @@
                   buffer-file-name (projectile-project-root))))
     (kill-new filename)
     (message "Copied buffer file name '%s' to the clipboard" filename)))
+
+
+(defun create-python-import ()
+  (interactive)
+  (let ((import (concat (concat "from " (replace-regexp-in-string "/" "."
+                   (replace-regexp-in-string "\.py" ""
+                   (file-relative-name
+                  buffer-file-name (projectile-project-root))))) " import")))
+    (kill-new import)
+    (message "Copied '%s' to the clipboard" import)))
 
 (defun copy-path ()
   "Copy the current buffer file name to the clipboard."
@@ -628,7 +685,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(swift-mode persistent-scratch go-mode eglot forge magit jq-mode graphql-mode marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(lsp-pyright swift-mode persistent-scratch go-mode eglot forge magit jq-mode graphql-mode marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)
