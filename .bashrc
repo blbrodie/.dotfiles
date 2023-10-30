@@ -17,17 +17,6 @@ alias tags='git ls-files | ctags --extra=+q -e -R --links=no -L-'
 
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
-if type brew &>/dev/null; then
-  HOMEBREW_PREFIX="$(brew --prefix)"
-  if [[ -r "${HOMEBREW_PREFIX}/etc/profile.d/bash_completion.sh" ]]; then
-    source "${HOMEBREW_PREFIX}/etc/profile.d/bash_completion.sh"
-  else
-    for COMPLETION in "${HOMEBREW_PREFIX}/etc/bash_completion.d/"*; do
-      [[ -r "$COMPLETION" ]] && source "$COMPLETION"
-    done
-  fi
-fi
-
 # eval $(perl -I ~/perl5/lib/perl5/ -Mlocal::lib)
 function gitname {
   git config --replace-all user.name $1
@@ -59,8 +48,8 @@ drmi() { docker images | awk '{print $3}' | grep -v IMAGE | xargs docker rmi -f;
 drmv() { docker volume rm $(docker volume ls -q); }
 nuke-docker() { ds && drm && drmi && drmv; }
 
-alias mbe="cd ~/development/whatnot_backend/"
-alias live="cd ~/development/whatnot_live/"
+alias mbe="cd ~/dev/whatnot_backend/"
+alias live="cd ~/dev/whatnot_live/"
 
 aws_profile() {
     grep profile ~/.aws/config  | awk '{print $2}' | tr -d ']'
@@ -75,6 +64,7 @@ a_pod() {
 }
 
 export PATH=$PATH:$(brew --prefix)/opt/python/libexec/bin
+export PATH=$PATH:~/.emacs.d/bin
 
 # Nix
 if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then

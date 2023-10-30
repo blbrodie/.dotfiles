@@ -115,6 +115,7 @@
 
 (use-package emacs
   :init
+  ;; vertico settings
   ;; Add prompt indicator to `completing-read-multiple'.
   ;; We display [CRM<separator>], e.g., [CRM,] if the separator is a comma.
   (defun crm-indicator (args)
@@ -138,7 +139,9 @@
   ;;       #'command-completion-default-include-p)
 
   ;; Enable recursive minibuffers
-  (setq enable-recursive-minibuffers t))
+  (setq enable-recursive-minibuffers t)
+  (set-frame-font "Menlo-14" nil t)
+  )
 
 (use-package elm-mode
   :ensure t
@@ -280,7 +283,7 @@
     (setq lsp-headerline-breadcrumb-enable t)
     (setq lsp-enable-file-watchers nil)
     (setq lsp-elixir-suggest-specs nil)
-    (setq lsp-ui-sideline-enable nil)
+    (setq lsp-ui-sideline-enable t)
     (setq lsp-modeline-diagnostics-enable t)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
   :hook
@@ -446,12 +449,12 @@
 
 (use-package rubocop :ensure t)
 
-(use-package spaceline
-  :ensure t
-  :config
-  (setq powerline-default-separator 'contour)
-  (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
-  (spaceline-spacemacs-theme))
+;; (use-package spaceline
+;;   :ensure t
+;;   :config
+;;   (setq powerline-default-separator 'contour)
+;;   (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
+;;   (spaceline-spacemacs-theme))
 
 (use-package swift-mode)
 
@@ -611,7 +614,7 @@
 ;; (add-hook 'after-init-hook 'toggle-frame-maximized)
 (add-to-list 'default-frame-alist '(height . 100))
 (add-to-list 'default-frame-alist '(width . 120))
-(add-hook 'after-init-hook 'powerline-reset)
+;; (add-hook 'after-init-hook 'powerline-reset)
 (setq show-trailing-whitespace t)
 (menu-bar-mode -1)
 (setq use-dialog-box nil)
