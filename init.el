@@ -29,6 +29,7 @@
   (auto-package-update-maybe))
 
 (use-package ace-window
+  :defer t
   :ensure t
   :bind ("M-o" . ace-window)
   :config
@@ -37,19 +38,17 @@
   )
 
 (use-package ag
+  :defer t
   :ensure t
   :hook (ag-mode . wgrep-ag-setup)
   :config
   (setq ag-highlight-search t)
   (setq ag-arguments (cons "-W 256" ag-arguments)))
 
-(use-package auctex :ensure t :defer t)
-
-(require 'artist)
-(eval-after-load "artist"
-   '(define-key artist-mode-map [(down-mouse-3)] 'artist-mouse-choose-operation))
+(use-package auctex :defer t :ensure t :defer t)
 
 (use-package avy
+  :defer t
   :ensure t
   :config
   (avy-setup-default)
@@ -60,13 +59,15 @@
   ("C-'" . avy-goto-char)
   ("C-c C-;" . avy-goto-line))
 
-(use-package browse-kill-ring :ensure t)
+(use-package browse-kill-ring :defer t :ensure t)
 
 (use-package company
+  :defer t
   :ensure t
   :config (setq company-idle-delay 0.500))
 
 (use-package consult
+  :defer t
   :ensure t
   :config
     (autoload 'projectile-project-root "projectile")
@@ -74,9 +75,11 @@
     (setq consult-narrow-key "<")
     (setq recentf-max-menu-items 100)
     (setq recentf-max-saved-items 100)
+    (setq xref-show-xrefs-function 'consult-xref)
   :bind (("C-x b" . consult-buffer)
          ("C-s"   . consult-line)
-         ("C-c C-1"   . consult-flymake)
+         ("C-c s" . consult-ripgrep)
+         ("C-c C-1"  . consult-flymake)
          ("M-s l" . consult-line)
          ("M-s L" . consult-line-multi)))
 
@@ -89,18 +92,20 @@
   ;; (setq direnv-always-show-summary nil)
   (direnv-mode))
 
-(use-package dumb-jump
-  :after (evil)
-  :ensure t
-  :config
-  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
+;; (use-package dumb-jump
+;;   :defer t
+;;   :after (evil)
+;;   :ensure t
+;;   :config
+;;   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
+
 
 (use-package elixir-mode
+  :defer t
   :ensure t
   :bind (:map elixir-mode-map ("C-c C-c f" . elixir-format))
-  ;; :init (add-hook 'elixir-mode-hook
-  ;;                 (lambda () (add-hook 'before-save-hook 'elixir-format nil t)))
-  )
+  :init (add-hook 'elixir-mode-hook
+                  (lambda () (add-hook 'before-save-hook 'elixir-format nil t))))
 
 ;; (use-package eglot
 ;;   :ensure t
@@ -144,6 +149,7 @@
   )
 
 (use-package elm-mode
+  :defer t
   :ensure t
   :config (setq elm-indent-offset 2))
 
@@ -154,6 +160,7 @@
   :init
   (setq evil-undo-system 'undo-redo)
   (setq evil-want-keybinding nil)
+  (setq evil-want-integration t)
   :config
   (evil-mode 1)
   (evil-define-key 'normal 'global (kbd "C-]") 'evil-goto-definition)
@@ -162,30 +169,35 @@
 
 (use-package evil-collection
   :ensure t
-  :after (evil)
+  :after evil
+  :init
+  (setq evil-collection-want-find-usages-bindings t)
   :config
   (evil-collection-init))
 
-(use-package evil-org
-  :ensure t
-  :after (org)
-  :config
-  (add-hook 'org-mode-hook 'evil-org-mode)
-  (add-hook 'evil-org-mode-hook
-            (lambda ()
-              (evil-org-set-key-theme
-               '(textobjects insert navigation additional shift todo))))
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
+;; (use-package evil-org
+;;   :defer t
+;;   :ensure t
+;;   :after (org)
+;;   :config
+;;   (add-hook 'org-mode-hook 'evil-org-mode)
+;;   (add-hook 'evil-org-mode-hook
+;;             (lambda ()
+;;               (evil-org-set-key-theme
+;;                '(textobjects insert navigation additional shift todo))))
+;;   (require 'evil-org-agenda)
+;;   (evil-org-agenda-set-keys))
 
 (use-package evil-matchit
+  :defer t
   :ensure t
-  :after (evil)
+  :after evil-collection
   :config (global-evil-matchit-mode 1))
 
 (use-package evil-surround
+  :defer t
   :ensure t
-  :after (evil)
+  :after evil-collection
   :config
   (global-evil-surround-mode 1))
 
@@ -208,6 +220,7 @@
   ;; (setq ido-use-filename-at-point 'guess)
   ;; (setq ido-use-url-at-point t))
 (use-package flycheck
+  :defer t
   :ensure t
   :hook
   (ruby-mode . (lambda ()
@@ -231,33 +244,40 @@
 ;; (use-package flycheck-elixir :ensure t)
 
 (use-package flyspell
+  :defer t
   :ensure t
   :hook
   (text-mode . flyspell-mode)
   (html-mode . (lambda() (flyspell-mode -1))))
 
-(use-package go-mode)
+(use-package git-link :ensure t :defer t)
+
+(use-package go-mode :ensure t :defer t)
 
 (use-package gnutls
+  :defer t
   :ensure t
   :config
   (add-to-list 'gnutls-trustfiles "/usr/local/etc/openssl/cert.pem"))
 
-(use-package groovy-mode :ensure t)
+(use-package groovy-mode :ensure t :defer t)
 
-(use-package graphql-mode :ensure t)
+(use-package graphql-mode :ensure t :defer t)
 
-(use-package jq-mode :ensure t)
+(use-package jq-mode :ensure t :defer t)
 
 (use-package json-mode
+  :defer t
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
 
 (use-package kotlin-mode
+  :defer t
   :ensure t
   :config (setq kotlin-tab-width 2))
 
 (use-package lsp-java
+  :defer t
   :ensure t
   :config
   (setq lsp-java-vmargs '("-noverify" "-Xmx1G" "-XX:+UseG1GC" "-XX:+UseStringDeduplication"))
@@ -270,6 +290,7 @@
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
 
 (use-package lsp-mode
+  :defer t
   :ensure t
   ;; :after (lsp-ui)
   :init
@@ -296,14 +317,16 @@
     ;; (web-mode    . lsp)
     (python-mode . lsp)
     (lsp-mode    . lsp-enable-which-key-integration)
+    (lsp-mode . (lambda () (evil-local-set-key 'normal (kbd "gr") 'lsp-find-references)))
     (lsp-diagnostics-updated . cond-add-elixir-credo)
   :commands (lsp))
 
 (use-package lsp-ui
-  :ensure t
-  )
+  :defer t
+  :ensure t)
 
 (use-package lsp-pyright
+  :defer t
   :ensure t
   :config
   ;; (setq lsp-pyright-use-library-code-for-types t) ;; set this to nil if getting too many false positive type errors
@@ -313,10 +336,12 @@
 
 
 (use-package marginalia
+  :defer t
   :bind (:map minibuffer-local-map ("M-A" . marginalia-cycle))
   :init (marginalia-mode))
 
 (use-package magit
+  :defer t
   :ensure t
   :after (evil)
   :config (setq magit-list-refs-sortby "-committerdate")
@@ -324,6 +349,7 @@
          ("C-c g" . magit-file-dispatch)))
 
 (use-package markdown-mode
+  :defer t
   :ensure t
   :config (setq tab-width 2)
   :hook
@@ -332,9 +358,10 @@
   (markdown-mode . (lambda() (setq-local fill-column 80)))
   (markdown-mode . company-mode))
 
-(use-package midnight)
+(use-package midnight :ensure t)
 
 (use-package nix-mode
+  :defer t
   :ensure t
   :mode "\\.nix\\'")
 
@@ -401,6 +428,7 @@
 			     (org-present-read-write)))))
 
 (use-package projectile
+  :defer t
   :ensure t
   :bind-keymap
   ("C-c p" . projectile-command-map)
@@ -439,28 +467,30 @@
 (global-set-key (kbd "C-c q") 'qtest)
 
 (use-package restclient
+  :defer t
   :ensure t
   :config
   (setq restclient-inhibit-cookies t)
   (autoload 'jq-set-var "jq-mode.el")
   :mode ("\\.http\\'" . restclient-mode))
 
-(use-package ripgrep :ensure t)
+(use-package ripgrep :ensure t :defer t)
 
-(use-package rubocop :ensure t)
+(use-package rubocop :ensure t :defer t)
 
-;; (use-package spaceline
-;;   :ensure t
-;;   :config
-;;   (setq powerline-default-separator 'contour)
-;;   (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
-;;   (spaceline-spacemacs-theme))
+(use-package spaceline
+  :ensure t
+  :config
+  (setq powerline-default-separator 'contour)
+  (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
+  (spaceline-spacemacs-theme))
 
-(use-package swift-mode)
+(use-package swift-mode :ensure t :defer t)
 
-(use-package string-inflection :ensure t)
+(use-package string-inflection :ensure t :defer t)
 
 (use-package typescript-mode
+  :defer t
   :ensure t
   :config (setq typescript-indent-level 2))
 
@@ -470,6 +500,7 @@
 ;;   :config (global-undo-tree-mode))
 
 (use-package vertico
+  :defer t
   :init
   (vertico-mode)
 
@@ -492,6 +523,7 @@
 
 
 (use-package web-mode
+  :defer t
   :ensure t
   :mode (("\\.erb\\'" . web-mode) ("\\.tsx\\'" . web-mode))
   :config
@@ -500,26 +532,30 @@
     (setq web-mode-code-indent-offset 2)
   )
 
-(use-package wgrep :ensure t)
+(use-package wgrep :ensure t :defer t)
 
 (use-package wgrep-ag
+  :defer t
   :ensure t
   :after wgrep)
 
 (use-package which-key
+  :defer t
   :ensure t
   :config (which-key-mode))
 
 (use-package ws-butler
+  :defer t
   :ensure t
   :config
   (ws-butler-global-mode))
 
 (use-package yaml-mode
+  :defer t
   :ensure t
   :hook (yaml-mode . display-line-numbers-mode))
 
-(use-package yari :ensure t)
+(use-package yari :ensure t :defer t)
 
 (use-package zenburn-theme
   :ensure t
@@ -614,7 +650,7 @@
 ;; (add-hook 'after-init-hook 'toggle-frame-maximized)
 (add-to-list 'default-frame-alist '(height . 100))
 (add-to-list 'default-frame-alist '(width . 120))
-;; (add-hook 'after-init-hook 'powerline-reset)
+(add-hook 'after-init-hook 'powerline-reset)
 (setq show-trailing-whitespace t)
 (menu-bar-mode -1)
 (setq use-dialog-box nil)
@@ -688,7 +724,7 @@
  '(nrepl-message-colors
    '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
  '(package-selected-packages
-   '(lsp-pyright swift-mode persistent-scratch go-mode eglot forge magit jq-mode graphql-mode marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
+   '(git-link lsp-origami origami lsp-pyright swift-mode persistent-scratch go-mode eglot forge magit jq-mode graphql-mode marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
  '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
  '(safe-local-variable-values '((column-enforce-column . 120)))
  '(tool-bar-mode nil)
@@ -719,5 +755,5 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "#3F3F3F" :foreground "#DCDCCC" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 140 :width normal :foundry "nil" :family "Menlo")))))
+ )
 (put 'dired-find-alternate-file 'disabled nil)
