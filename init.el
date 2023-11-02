@@ -88,8 +88,8 @@
   :ensure t
   :init
   :config
-  ;; (setq direnv-show-paths-in-summary nil)
-  ;; (setq direnv-always-show-summary nil)
+  (setq direnv-show-paths-in-summary nil)
+  (setq direnv-always-show-summary nil)
   (direnv-mode))
 
 ;; (use-package dumb-jump
