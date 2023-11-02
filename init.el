@@ -9,14 +9,6 @@
 (add-to-list 'package-archives '("melpa-stable" . "http://stable.melpa.org/packages/"))
 (package-initialize)
 
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-
-;; use-package
-(eval-when-compile (require 'use-package))
-(require 'bind-key)
-
 ;; (setq use-package-always-defer t)
 (setq use-package-always-ensure t)
 
