@@ -9,6 +9,10 @@
 (add-to-list 'package-archives '("melpa-stable" . "http://stable.melpa.org/packages/"))
 (package-initialize)
 
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)                ;; if you use any :bind variant
+
 ;; (setq use-package-always-defer t)
 (setq use-package-always-ensure t)
 
@@ -18,6 +22,7 @@
   :config
   (setq auto-package-update-delete-old-versions t)
   (setq auto-package-update-hide-results t)
+  (setq auto-package-update-prompt-before-update t)
   (auto-package-update-maybe))
 
 (use-package ace-window
@@ -37,7 +42,7 @@
   (setq ag-highlight-search t)
   (setq ag-arguments (cons "-W 256" ag-arguments)))
 
-(use-package auctex :defer t :ensure t :defer t)
+(use-package auctex :defer t :ensure t)
 
 (use-package avy
   :defer t
@@ -75,7 +80,6 @@
          ("M-s l" . consult-line)
          ("M-s L" . consult-line-multi)))
 
-
 (use-package direnv
   :ensure t
   :init
@@ -90,7 +94,6 @@
 ;;   :ensure t
 ;;   :config
 ;;   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
-
 
 (use-package elixir-mode
   :defer t
@@ -132,12 +135,79 @@
 
   ;; Emacs 28: Hide commands in M-x which do not work in the current mode.
   ;; Vertico commands are hidden in normal buffers.
-  ;; (setq read-extended-command-predicate
-  ;;       #'command-completion-default-include-p)
+  (setq read-extended-command-predicate
+        #'command-completion-default-include-p)
 
   ;; Enable recursive minibuffers
   (setq enable-recursive-minibuffers t)
+
+  ;; look and feel
   (set-frame-font "Menlo-14" nil t)
+  ;; (load-theme 'gruvbox-light-soft t)
+  (load-theme 'zenburn t)
+
+  (setq ring-bell-function 'ignore)
+  (scroll-bar-mode -1)
+  (setq column-number-mode t)
+  (show-paren-mode 1)
+  ;; (add-hook 'after-init-hook 'toggle-frame-maximized)
+  (add-to-list 'default-frame-alist '(height . 100))
+  (add-to-list 'default-frame-alist '(width . 120))
+  ;; (add-hook 'after-init-hook 'powerline-reset)
+  (setq show-trailing-whitespace t)
+  (menu-bar-mode -1)
+  (setq use-dialog-box nil)
+
+  ;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
+  (setq split-height-threshold nil)
+  (setq split-width-threshold 200)
+
+  ;; tags
+  (setq tags-add-tables nil)
+
+  ;; ediff
+  (require 'ediff)
+  (setq ediff-window-setup-function 'ediff-setup-windows-plain)
+
+  ;; ispell
+  (setq ispell-program-name "/usr/local/bin/ispell")
+
+  ;; recentf
+  (recentf-mode 1)
+
+  ;; shell
+  (setq shell-file-name "/bin/bash")
+  ;; (add-hook 'comint-mode-hook (lambda () (setq comint-process-echoes t)))
+
+  (when (memq window-system '(mac ns x))
+    (exec-path-from-shell-initialize))
+
+  ;; indentation
+  (electric-indent-mode 1)
+  (setq-default standard-indent 2)
+  (setq-default indent-tabs-mode nil)
+  (setq-default tab-width 2)
+  (setq-default c-basic-offset 2)
+  (setq-default js-indent-level 2)
+  (setq-default css-indent-offset 2)
+  (setq-default sh-basic-offset 2)
+  (setq-default cperl-indent-level 2)
+  ;; backups
+  (setq backup-directory-alist `((".*" . ,temporary-file-directory)))
+  (setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
+
+  ;; lock files
+  (setq create-lockfiles nil)
+
+  (add-to-list 'display-buffer-alist
+               '("*shell-?*" (display-buffer-reuse-window
+                              display-buffer-same-window)))
+
+  (setq undo-strong-limit 1048576)
+  (setq undo-limit 1048576)
+
+  (put 'dired-find-alternate-file 'disabled nil)
+  (tool-bar-mode -1)
   )
 
 (use-package elm-mode
@@ -200,8 +270,8 @@
   (setq exec-path-from-shell-variables
    '("PATH" "MANPATH" "IN_NIX_SHELL" "NIX_PROFILES" "NIX_PATH" "NIX_SSL_CERT_FILE")))
 
-(use-package flymake
-  :bind ("C-c C-2"   . flymake-goto-next-error))
+;; (use-package flymake
+;;   :bind ("C-c C-2"   . flymake-goto-next-error))
 
 (use-package flx-ido :ensure t)
   ;; (ido-mode 1)
@@ -211,6 +281,7 @@
   ;; (setq ido-use-faces nil)
   ;; (setq ido-use-filename-at-point 'guess)
   ;; (setq ido-use-url-at-point t))
+
 (use-package flycheck
   :defer t
   :ensure t
@@ -221,11 +292,11 @@
                         (append '("bundle" "exec") command)))))
   :config
   (setq flycheck-display-errors-function
-        #'flycheck-display-error-messages-unless-error-list))
+        #'flycheck-display-error-messages-unless-error-list)
   ;; (global-flycheck-mode))
 
-;; control the flycheck list errors buffer
-(add-to-list 'display-buffer-alist
+  ;; control the flycheck list errors buffer
+  (add-to-list 'display-buffer-alist
              `(,(rx bos "*Flycheck errors*" eos)
               (display-buffer-reuse-window
                display-buffer-in-side-window)
@@ -233,7 +304,8 @@
               (reusable-frames . visible)
               (window-height   . 0.10)))
 
-;; (use-package flycheck-elixir :ensure t)
+  ;; (use-package flycheck-elixir :ensure t)
+  )
 
 (use-package flyspell
   :defer t
@@ -252,9 +324,11 @@
   :config
   (add-to-list 'gnutls-trustfiles "/usr/local/etc/openssl/cert.pem"))
 
+(use-package graphql-mode :ensure t :defer t)
+
 (use-package groovy-mode :ensure t :defer t)
 
-(use-package graphql-mode :ensure t :defer t)
+(use-package gruvbox-theme :ensure t :defer t)
 
 (use-package jq-mode :ensure t :defer t)
 
@@ -262,7 +336,6 @@
   :defer t
   :ensure t
   :hook (json-mode . (lambda()(setq js-indent-level 2))))
-
 (use-package kotlin-mode
   :defer t
   :ensure t
@@ -358,66 +431,67 @@
   :mode "\\.nix\\'")
 
 (use-package orderless
-  :init
+  :ensure t
   ;; Configure a custom style dispatcher (see the Consult wiki)
   ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
   ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  :init
   (setq completion-styles '(orderless basic)
         completion-category-defaults nil
         completion-category-overrides '((file (styles partial-completion)))))
 
 ;; org-mode
-(require 'org)
-(add-hook 'org-mode-hook 'auto-revert-mode)
-(add-to-list 'org-modules 'org-habit)
-(setq org-directory "~/gtd")
-(setq org-default-notes-file "~/gtd/inbox.org")
-(setq org-agenda-files "~/.emacs.d/org-agenda-files")
-(setq org-outline-path-complete-in-steps nil)
-(setq org-refile-use-outline-path 'file)
-(setq org-refile-targets '((org-agenda-files :maxlevel . 1)))
-(setq org-todo-keywords
-      '((sequence "TODO" "IN-PROGRESS" "DONE")))
+;; (require 'org)
+;; (add-hook 'org-mode-hook 'auto-revert-mode)
+;; (add-to-list 'org-modules 'org-habit)
+;; (setq org-directory "~/gtd")
+;; (setq org-default-notes-file "~/gtd/inbox.org")
+;; (setq org-agenda-files "~/.emacs.d/org-agenda-files")
+;; (setq org-outline-path-complete-in-steps nil)
+;; (setq org-refile-use-outline-path 'file)
+;; (setq org-refile-targets '((org-agenda-files :maxlevel . 1)))
+;; (setq org-todo-keywords
+;;       '((sequence "TODO" "IN-PROGRESS" "DONE")))
 
-(require 'org-capture)
-(global-set-key "\C-cc" 'org-capture)
-(setq org-capture-templates `(("t" "TODO" entry (file "inbox.org")
-                               ,(concat "* TODO %?\n"
-                                        "  %U\n"
-                                        "  %a"))
-                              ("h" "Habit" entry (file "habits.org")
-                               ,(concat "* TODO %?\n"
-                                        "  SCHEDULED: %t\n"
-                                        "  :PROPERTIES:\n"
-                                        "  :STYLE: habit\n"
-                                        "  :END:"))))
+;; (require 'org-capture)
+;; (global-set-key "\C-cc" 'org-capture)
+;; (setq org-capture-templates `(("t" "TODO" entry (file "inbox.org")
+;;                                ,(concat "* TODO %?\n"
+;;                                         "  %U\n"
+;;                                         "  %a"))
+;;                               ("h" "Habit" entry (file "habits.org")
+;;                                ,(concat "* TODO %?\n"
+;;                                         "  SCHEDULED: %t\n"
+;;                                         "  :PROPERTIES:\n"
+;;                                         "  :STYLE: habit\n"
+;;                                         "  :END:"))))
 
-(require 'org-clock)
-(setq org-clock-idle-time 10)
+;; (require 'org-clock)
+;; (setq org-clock-idle-time 10)
 
-(require 'org-agenda)
-(global-set-key "\C-ca" 'org-agenda)
-(setq org-agenda-window-setup 'current-window)
-(setq org-agenda-todo-ignore-scheduled 'future)
+;; (require 'org-agenda)
+;; (global-set-key "\C-ca" 'org-agenda)
+;; (setq org-agenda-window-setup 'current-window)
+;; (setq org-agenda-todo-ignore-scheduled 'future)
 
-(use-package org-present
-  :ensure t
-  :after evil
-  :hook
-  ((org-present-mode . (lambda ()
-			      (evil-mode 0)
-			      (hide-mode-line-mode 1)
-			      (org-present-big)
-			      (org-display-inline-images)
-			      (org-present-hide-cursor)
-			      (org-present-read-only)))
-  (org-present-mode-quit . (lambda ()
-			     (evil-mode 1)
-			     (hide-mode-line-mode 0)
-			     (org-present-small)
-			     (org-remove-inline-images)
-			     (org-present-show-cursor)
-			     (org-present-read-write)))))
+;; (use-package org-present
+;;   :ensure t
+;;   :after evil
+;;   :hook
+;;   ((org-present-mode . (lambda ()
+;; 			      (evil-mode 0)
+;; 			      (hide-mode-line-mode 1)
+;; 			      (org-present-big)
+;; 			      (org-display-inline-images)
+;; 			      (org-present-hide-cursor)
+;; 			      (org-present-read-only)))
+;;   (org-present-mode-quit . (lambda ()
+;; 			     (evil-mode 1)
+;; 			     (hide-mode-line-mode 0)
+;; 			     (org-present-small)
+;; 			     (org-remove-inline-images)
+;; 			     (org-present-show-cursor)
+;; 			     (org-present-read-write)))))
 
 (use-package projectile
   :defer t
@@ -425,10 +499,9 @@
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :config
-  (setq projectile-completion-system 'default)
+  (setq projectile-completion-system 'auto)
   (projectile-mode)
-  (projectile-tags-exclude-patterns)
-)
+  (projectile-tags-exclude-patterns))
 
 (defvar last-qtest-buffer nil
   "Store the last buffer used for 'qtest' command.")
@@ -470,12 +543,12 @@
 
 (use-package rubocop :ensure t :defer t)
 
-(use-package spaceline
-  :ensure t
-  :config
-  (setq powerline-default-separator 'contour)
-  (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
-  (spaceline-spacemacs-theme))
+;; (use-package spaceline
+;;   :ensure t
+;;   :config
+;;   (setq powerline-default-separator 'contour)
+;;   (setq spaceline-highlight-face-func 'spaceline-highlight-face-evil-state)
+;;   (spaceline-spacemacs-theme))
 
 (use-package swift-mode :ensure t :defer t)
 
@@ -492,7 +565,6 @@
 ;;   :config (global-undo-tree-mode))
 
 (use-package vertico
-  :defer t
   :init
   (vertico-mode)
 
@@ -513,6 +585,9 @@
   :init
   (savehist-mode))
 
+(use-package solarized-theme
+             :defer t
+             :ensure t)
 
 (use-package web-mode
   :defer t
@@ -532,12 +607,10 @@
   :after wgrep)
 
 (use-package which-key
-  :defer t
   :ensure t
   :config (which-key-mode))
 
 (use-package ws-butler
-  :defer t
   :ensure t
   :config
   (ws-butler-global-mode))
@@ -550,11 +623,15 @@
 (use-package yari :ensure t :defer t)
 
 (use-package zenburn-theme
-  :ensure t
-  :config (load-theme 'zenburn t))
-
-(setq undo-strong-limit 1048576)
-(setq undo-limit 1048576)
+             :defer t
+             :ensure t
+             :init
+             ;; use variable-pitch fonts for some headings and titles
+            (setq zenburn-use-variable-pitch t)
+            ;; scale headings in org-mode
+            (setq zenburn-scale-org-headlines t)
+            ;; scale headings in outline-mode
+            (setq zenburn-scale-outline-headlines t))
 
 ;; (use-package zoom-window
 ;;   :ensure t
@@ -562,6 +639,8 @@
 ;;   :config (setq zoom-window-mode-line-color nil))
 
 ;; END OF USE-PACKAGE
+
+
 (global-set-key (kbd "C-x C-z") 'maximize-window)
 
 ;; file mode associations
@@ -634,67 +713,6 @@
 
 (setenv "EDITOR" "emacsclient")
 
-;; look and feel
-(setq ring-bell-function 'ignore)
-(scroll-bar-mode -1)
-(setq column-number-mode t)
-(show-paren-mode 1)
-;; (add-hook 'after-init-hook 'toggle-frame-maximized)
-(add-to-list 'default-frame-alist '(height . 100))
-(add-to-list 'default-frame-alist '(width . 120))
-(add-hook 'after-init-hook 'powerline-reset)
-(setq show-trailing-whitespace t)
-(menu-bar-mode -1)
-(setq use-dialog-box nil)
-;; (set-frame-font "Source Code Pro 14" nil t)
-;; (add-to-list 'default-frame-alist '(height . 120))
-;; (add-to-list 'default-frame-alist '(width . 80))
-
-;;If this is nil, split-window-sensibly is not allowed to split a window vertically.
-(setq split-height-threshold nil)
-(setq split-width-threshold 200)
-
-;; tags
-(setq tags-add-tables nil)
-
-;; ediff
-(require 'ediff)
-(setq ediff-window-setup-function 'ediff-setup-windows-plain)
-
-;; ispell
-(setq ispell-program-name "/usr/local/bin/ispell")
-
-;; recentf
-(recentf-mode 1)
-
-;; shell
-(setq shell-file-name "/bin/bash")
-;; (add-hook 'comint-mode-hook (lambda () (setq comint-process-echoes t)))
-
-(when (memq window-system '(mac ns x))
-  (exec-path-from-shell-initialize))
-
-;; indentation
-(electric-indent-mode 1)
-(setq-default standard-indent 2)
-(setq-default indent-tabs-mode nil)
-(setq-default tab-width 2)
-(setq-default c-basic-offset 2)
-(setq-default js-indent-level 2)
-(setq-default css-indent-offset 2)
-(setq-default sh-basic-offset 2)
-(setq-default cperl-indent-level 2)
-;; backups
-(setq backup-directory-alist `((".*" . ,temporary-file-directory)))
-(setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
-
-;; lock files
-(setq create-lockfiles nil)
-
-(add-to-list 'display-buffer-alist
-              '("*shell-?*" (display-buffer-reuse-window
-                              display-buffer-same-window)))
-
 ;; babel
 (org-babel-do-load-languages
  'org-babel-load-languages
@@ -707,45 +725,11 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(company-quickhelp-color-background "#4F4F4F")
- '(company-quickhelp-color-foreground "#DCDCCC")
  '(custom-safe-themes
-   '("e6df46d5085fde0ad56a46ef69ebb388193080cc9819e2d6024c9c6e27388ba9" "54f2d1fcc9bcadedd50398697618f7c34aceb9966a6cbaa99829eb64c0c1f3ca" "e11569fd7e31321a33358ee4b232c2d3cf05caccd90f896e1df6cab228191109" default))
- '(default-input-method "latin-prefix")
- '(fci-rule-color "#383838")
- '(nrepl-message-colors
-   '("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3"))
- '(package-selected-packages
-   '(git-link lsp-origami origami lsp-pyright swift-mode persistent-scratch go-mode eglot forge magit jq-mode graphql-mode marginalia lsp-mode selectrum-prescient selectrum floobits typescript-mode typescript direnv which-key kotlin-mode nix-mode column-marker evil-matchit browse-kill-ring java-imports zoom-window dumb-jump gtags groovy-mode ripgrep web-mode yari ctags-update spaceline wget evil-collection wgrep-ag use-package string-inflection json-mode evil-surround rg counsel-projectile evil-magit rjsx-mode js2-mode hide-mode-line org-present yaml-mode evil-org ivy-hydra hydra counsel ivy rubocop haskell-mode ws-butler markdown-mode alchemist ag ace-window zenburn-theme evil-snipe column-enforce-mode flx-ido company yasnippet-snippets meghanada projectile flycheck exec-path-from-shell restclient erlang evil))
- '(pdf-view-midnight-colors '("#DCDCCC" . "#383838"))
- '(safe-local-variable-values '((column-enforce-column . 120)))
- '(tool-bar-mode nil)
- '(vc-annotate-background "#2B2B2B")
- '(vc-annotate-color-map
-   '((20 . "#BC8383")
-     (40 . "#CC9393")
-     (60 . "#DFAF8F")
-     (80 . "#D0BF8F")
-     (100 . "#E0CF9F")
-     (120 . "#F0DFAF")
-     (140 . "#5F7F5F")
-     (160 . "#7F9F7F")
-     (180 . "#8FB28F")
-     (200 . "#9FC59F")
-     (220 . "#AFD8AF")
-     (240 . "#BFEBBF")
-     (260 . "#93E0E3")
-     (280 . "#6CA0A3")
-     (300 . "#7CB8BB")
-     (320 . "#8CD0D3")
-     (340 . "#94BFF3")
-     (360 . "#DC8CC3")))
- '(vc-annotate-very-old-color "#DC8CC3")
- '(warning-suppress-log-types '((emacs))))
+   '("871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8" "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7" "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
-(put 'dired-find-alternate-file 'disabled nil)
