@@ -74,18 +74,21 @@
     (setq recentf-max-saved-items 100)
     (setq xref-show-xrefs-function 'consult-xref)
   :bind (("C-x b" . consult-buffer)
+         ("C-x p b" . consult-project-buffer)
+         ("C-c b" . consult-project-buffer)
          ("C-s"   . consult-line)
          ("C-c s" . consult-ripgrep)
          ("C-c C-1"  . consult-flymake)
-         ("M-s l" . consult-line)
-         ("M-s L" . consult-line-multi)))
+         ("C-x r m" . consult-bookmark)
+         ("C-x r b" . consult-bookmark)
+         ))
 
 (use-package direnv
   :ensure t
   :init
   :config
   (setq direnv-show-paths-in-summary nil)
-  (setq direnv-always-show-summary nil)
+  (setq direnv-always-show-summary t)
   (direnv-mode))
 
 ;; (use-package dumb-jump
@@ -210,6 +213,38 @@
   (tool-bar-mode -1)
   )
 
+(use-package embark
+  :ensure t
+
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("C-;" . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+
+  :init
+
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  ;; Show the Embark target at point via Eldoc.  You may adjust the Eldoc
+  ;; strategy, if you want to see the documentation from multiple providers.
+  (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+  ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
+
+  :config
+
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+;; Consult users will also want the embark-consult package.
+(use-package embark-consult
+  :ensure t ; only need to install it, embark loads it after consult if found
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
+
 (use-package elm-mode
   :defer t
   :ensure t
@@ -329,6 +364,8 @@
 (use-package groovy-mode :ensure t :defer t)
 
 (use-package gruvbox-theme :ensure t :defer t)
+
+(use-package hl-todo-modo :ensure t :defer t)
 
 (use-package jq-mode :ensure t :defer t)
 
@@ -726,7 +763,9 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8" "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7" "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default)))
+   '("d89e15a34261019eec9072575d8a924185c27d3da64899905f8548cbd9491a36" "871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8" "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7" "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default))
+ '(package-selected-packages
+   '(embark-consult hl-todo-modo zenburn-theme yari yaml-mode ws-butler which-key wgrep-ag web-mode vertico typescript-mode swift-mode string-inflection spaceline solarized-theme rubocop ripgrep restclient projectile org-present orderless nix-mode marginalia magit lsp-ui lsp-pyright lsp-origami lsp-java kotlin-mode json-mode jq-mode gruvbox-theme groovy-mode graphql-mode go-mode git-link flycheck flx-ido exec-path-from-shell evil-surround evil-org evil-matchit evil-collection erlang elm-mode elixir-ts-mode elixir-mode dumb-jump direnv consult company browse-kill-ring auto-package-update auctex ag)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
