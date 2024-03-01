@@ -464,6 +464,9 @@
   :ensure t
   :after (evil)
   :config (setq magit-list-refs-sortby "-committerdate")
+  :hook
+  (magit-pre-refresh-hook . diff-hl-magit-pre-refresh)
+  (magit-post-refresh-hook . diff-hl-magit-post-refresh)
   :bind (("C-x g" . magit-status)
          ("C-c g" . magit-file-dispatch)))
 
