@@ -565,6 +565,8 @@
   (projectile-mode)
   (projectile-tags-exclude-patterns))
 
+(use-package protobuf-mode :defer t :ensure t)
+
 (defvar last-qtest-buffer nil
   "Store the last buffer used for 'qtest' command.")
 
@@ -799,7 +801,7 @@
    '("d89e15a34261019eec9072575d8a924185c27d3da64899905f8548cbd9491a36" "871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8" "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7" "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default))
  '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
  '(package-selected-packages
-   '(diff-hl-mode git-gutter csv-mode csv treesit-auto evil-multiedit magit-todos hl-todo embark-consult hl-todo-modo zenburn-theme yari yaml-mode ws-butler which-key wgrep-ag web-mode vertico swift-mode string-inflection spaceline solarized-theme rubocop ripgrep restclient projectile org-present orderless nix-mode marginalia magit lsp-ui lsp-pyright lsp-origami lsp-java kotlin-mode json-mode jq-mode gruvbox-theme groovy-mode graphql-mode go-mode git-link flycheck flx-ido exec-path-from-shell evil-surround evil-org evil-matchit evil-collection erlang elm-mode elixir-ts-mode elixir-mode dumb-jump direnv consult company browse-kill-ring auto-package-update auctex ag)))
+   '(protobuf-mode diff-hl-mode git-gutter csv-mode csv treesit-auto evil-multiedit hl-todo embark-consult hl-todo-modo zenburn-theme yari yaml-mode ws-butler which-key wgrep-ag web-mode swift-mode string-inflection spaceline solarized-theme rubocop ripgrep restclient projectile org-present orderless nix-mode marginalia lsp-ui lsp-pyright lsp-origami lsp-java kotlin-mode json-mode jq-mode gruvbox-theme groovy-mode graphql-mode go-mode git-link flycheck flx-ido exec-path-from-shell evil-surround evil-org evil-matchit evil-collection erlang elm-mode elixir-ts-mode elixir-mode dumb-jump direnv consult company browse-kill-ring auto-package-update auctex ag)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

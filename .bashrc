@@ -26,20 +26,7 @@ function killport {
   lsof -i :"$1" | tail -1 | awk '{ print $2 }' | xargs kill
 }
 
-function curltime {
-  curl -w @- -o /dev/null -s "$@" <<'EOF'
-    time_namelookup:  %{time_namelookup}\n
-       time_connect:  %{time_connect}\n
-    time_appconnect:  %{time_appconnect}\n
-   time_pretransfer:  %{time_pretransfer}\n
-      time_redirect:  %{time_redirect}\n
- time_starttransfer:  %{time_starttransfer}\n
-                    ----------\n
-         time_total:  %{time_total}\n
-EOF
-}
-
-# export AWS_PROFILE=whatnot_eng_admin
+export AWS_PROFILE=whatnot_eng_user
 
 
 ds() { docker ps -a | awk '{print $1}' | grep -v CONTAINER | xargs docker stop; }
@@ -76,3 +63,16 @@ fi
 source ~/.bashrc.local
 
 eval "$(direnv hook bash)"
+
+function curltime {
+  curl -w @- -o /dev/null -s "$@" <<'EOF'
+    time_namelookup:  %{time_namelookup}\n
+       time_connect:  %{time_connect}\n
+    time_appconnect:  %{time_appconnect}\n
+   time_pretransfer:  %{time_pretransfer}\n
+      time_redirect:  %{time_redirect}\n
+ time_starttransfer:  %{time_starttransfer}\n
+                    ----------\n
+         time_total:  %{time_total}\n
+EOF
+}
