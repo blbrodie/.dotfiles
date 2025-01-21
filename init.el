@@ -52,7 +52,7 @@
   (setq avy-timeout-seconds 0.2)
   :bind
   ("C-," . avy-pop-mark)
-  ("C-;" . avy-goto-char-timer)
+  ("C-;" . avy-goto-char)
   ("C-c C-;" . avy-goto-line))
 
 (use-package browse-kill-ring :defer t :ensure t)
@@ -152,9 +152,11 @@
   (setq enable-recursive-minibuffers t)
 
   ;; look and feel
-  (set-frame-font "Menlo-14" nil t)
+  ;; (set-frame-font "Menlo-14" nil t)
+  (set-frame-font "Fira Code 14" nil t)
   ;; (load-theme 'gruvbox-light-soft t)
-  (load-theme 'gruvbox-dark-soft t)
+  (load-theme 'solarized-selenized-dark t)
+  ;; (load-theme 'gruvbox-dark-soft t)
 
   (setq ring-bell-function 'ignore)
   (scroll-bar-mode -1)
@@ -363,7 +365,12 @@
 ;;   :config (global-git-gutter-mode))
 
 
-(use-package git-link :ensure t :defer t)
+(use-package git-link
+  :ensure t
+  :defer t
+  :config
+  (setq git-link-default-branch "main")
+  )
 
 (use-package go-mode :ensure t :defer t)
 
@@ -424,6 +431,10 @@
     (setq lsp-ui-sideline-enable nil)
     (setq lsp-modeline-diagnostics-enable t)
     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
+    (setq lsp-disabled-clients '(ruff))
+    (setq lsp-pylsp-plugins-rope-autoimport-completions-enabled nil)
+    (setq lsp-pylsp-plugins-rope-autoimport-code-actions-enabled nil)
+    (setq lsp-pylsp-plugins-rope-autoimport-enabled nil)
   :hook
     (kotlin-mode . lsp)
     (elixir-mode . (lambda() (direnv-update-environment) (lsp)))
@@ -434,24 +445,27 @@
     (tsx-mode . (lambda() (message "running lsp hook tsx-mode") (lsp)))
     (typescript-ts-base-mode . (lambda() (message "running lsp hook typescript-ts-base-mode") (lsp)))
     (typescript-mode . lsp)
-    (python-mode . lsp)
-    (python-ts-mode . lsp)
+    (python-mode . (lambda() (direnv-update-environment) (lsp)))
+    (python-ts-mode . (lambda() (direnv-update-environment) (lsp)))
     (lsp-mode    . lsp-enable-which-key-integration)
     (lsp-mode . (lambda () (evil-local-set-key 'normal (kbd "gr") 'lsp-find-references)))
     (lsp-diagnostics-updated . cond-add-elixir-credo)
   :commands (lsp))
 
+(use-package python-ts-mode
+  :ensure nil
+  :bind (("C-c TAB TAB" . python-import-symbol-at-point)))
+
 (use-package lsp-ui
   :ensure t)
 
-(use-package lsp-pyright
-  :defer t
-  :ensure t
-  :config
-  (setq lsp-pyright-use-library-code-for-types t) ;; set this to nil if getting too many false positive type errors
-  :hook (python-mode . (lambda ()
-                          (require 'lsp-pyright)
-                          (lsp))))
+;; (use-package lsp-pyright
+;;   :ensure t
+;;   :config
+;;   (setq lsp-pyright-use-library-code-for-types t) ;; set this to nil if getting too many false positive type errors
+;;   :hook (python-mode . (lambda ()
+;;                           (require 'lsp-pyright)
+;;                           (lsp))))
 
 
 (use-package marginalia
@@ -470,7 +484,12 @@
   :bind (("C-x g" . magit-status)
          ("C-c g" . magit-file-dispatch)))
 
-(use-package magit-todos :ensure t)
+;; (use-package magit-todos
+;;   :ensure t
+;;   :after magit
+;;   :config
+;;     (magit-todos-mode 1)
+;;   )
 
 (use-package markdown-mode
   :defer t
@@ -590,7 +609,7 @@
     (pop-to-buffer buffer)
     (goto-char (point-max))
     (insert (concat "make qtest t=" test-path))
-    (comint-send-input)
+    ;; (comint-send-input)
     (setq last-qtest-buffer (get-buffer buffer))))
 
 (global-set-key (kbd "C-c q") 'qtest)
@@ -801,7 +820,7 @@
    '("d89e15a34261019eec9072575d8a924185c27d3da64899905f8548cbd9491a36" "871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8" "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7" "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default))
  '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
  '(package-selected-packages
-   '(protobuf-mode diff-hl-mode git-gutter csv-mode csv treesit-auto evil-multiedit hl-todo embark-consult hl-todo-modo zenburn-theme yari yaml-mode ws-butler which-key wgrep-ag web-mode swift-mode string-inflection spaceline solarized-theme rubocop ripgrep restclient projectile org-present orderless nix-mode marginalia lsp-ui lsp-pyright lsp-origami lsp-java kotlin-mode json-mode jq-mode gruvbox-theme groovy-mode graphql-mode go-mode git-link flycheck flx-ido exec-path-from-shell evil-surround evil-org evil-matchit evil-collection erlang elm-mode elixir-ts-mode elixir-mode dumb-jump direnv consult company browse-kill-ring auto-package-update auctex ag)))
+   '(python-ts-mode protobuf-mode diff-hl-mode git-gutter csv-mode csv treesit-auto evil-multiedit hl-todo embark-consult hl-todo-modo zenburn-theme yari yaml-mode ws-butler which-key wgrep-ag web-mode swift-mode string-inflection spaceline solarized-theme rubocop ripgrep restclient projectile org-present orderless nix-mode marginalia lsp-ui lsp-pyright lsp-origami lsp-java kotlin-mode json-mode jq-mode gruvbox-theme groovy-mode graphql-mode go-mode git-link flycheck flx-ido exec-path-from-shell evil-surround evil-org evil-matchit evil-collection erlang elm-mode elixir-ts-mode elixir-mode dumb-jump direnv consult company browse-kill-ring auto-package-update auctex ag)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

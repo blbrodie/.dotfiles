@@ -38,6 +38,10 @@ nuke-docker() { ds && drm && drmi && drmv; }
 alias mbe="cd ~/dev/whatnot_backend/"
 alias live="cd ~/dev/whatnot_live/"
 
+
+# aws sso login --profile whatnot_eng_user
+# aws sso login
+# aws --profile whatnot_eng_user sts get-caller-identity
 aws_profile() {
     grep profile ~/.aws/config  | awk '{print $2}' | tr -d ']'
     printf "Please select: "
