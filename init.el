@@ -414,6 +414,46 @@
              (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
 
+(with-eval-after-load 'python
+    ;; Overwrite the `python--list-imports` function
+    (defun python--list-imports (name source)
+    "List all Python imports matching NAME in SOURCE, with a hardcoded limit of 2621 files.
+    If NAME is nil, list all imports. SOURCE can be a buffer or a
+    list of file names or directories; the latter are searched
+    recursively."
+    (let ((buffer (current-buffer))
+            (max-files 2621))  ;; Hardcoded limit
+        (with-temp-buffer
+        (let* ((temp (current-buffer))
+                ;; If source is a list of files, limit the number of files
+                (limited-source (if (listp source)
+                                    (seq-take source max-files)
+                                source))
+                (status (if (bufferp source)
+                            (with-current-buffer source
+                            (call-process-region (point-min) (point-max)
+                                                    python-interpreter
+                                                    nil (list temp nil) nil
+                                                    "-c" python--list-imports
+                                                    (or name "")))
+                        (with-current-buffer buffer
+                            (apply #'call-process
+                                    python-interpreter
+                                    nil (list temp nil) nil
+                                    "-c" python--list-imports
+                                    (or name "")
+                                    (mapcar #'file-local-name limited-source)))))
+                lines)
+            (unless (eq 0 status)
+            (error "%s exited with status %s (maybe isort is missing?)"
+                    python-interpreter status))
+            (goto-char (point-min))
+            (while (not (eobp))
+            (push (buffer-substring-no-properties (point) (pos-eol))
+                    lines)
+            (forward-line 1))
+            (nreverse lines))))))
+
 (use-package lsp-mode
   :defer t
   :ensure t
