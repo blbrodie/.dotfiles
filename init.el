@@ -415,44 +415,59 @@
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
 
 (with-eval-after-load 'python
-    ;; Overwrite the `python--list-imports` function
-    (defun python--list-imports (name source)
+  ;; Overwrite the `python--list-imports` function
+  (defun python--list-imports (name source)
     "List all Python imports matching NAME in SOURCE, with a hardcoded limit of 2621 files.
     If NAME is nil, list all imports. SOURCE can be a buffer or a
     list of file names or directories; the latter are searched
     recursively."
     (let ((buffer (current-buffer))
-            (max-files 2621))  ;; Hardcoded limit
-        (with-temp-buffer
+          (max-files 10000)  ;; Hardcoded limit
+          (project-root (or (project-root (project-current)) default-directory))) ;; Get project root
+      (with-temp-buffer
         (let* ((temp (current-buffer))
-                ;; If source is a list of files, limit the number of files
-                (limited-source (if (listp source)
-                                    (seq-take source max-files)
-                                source))
-                (status (if (bufferp source)
-                            (with-current-buffer source
-                            (call-process-region (point-min) (point-max)
-                                                    python-interpreter
-                                                    nil (list temp nil) nil
-                                                    "-c" python--list-imports
-                                                    (or name "")))
-                        (with-current-buffer buffer
-                            (apply #'call-process
-                                    python-interpreter
-                                    nil (list temp nil) nil
-                                    "-c" python--list-imports
-                                    (or name "")
-                                    (mapcar #'file-local-name limited-source)))))
-                lines)
-            (unless (eq 0 status)
+               ;; Prioritize project files
+               (prioritized-source
+                (if (listp source)
+                    (let ((project-files (seq-filter
+                                          (lambda (file)
+                                            (string-prefix-p project-root (file-truename file)))
+                                          source))
+                          (non-project-files (seq-remove
+                                              (lambda (file)
+                                                (string-prefix-p project-root (file-truename file)))
+                                              source)))
+                      (append project-files non-project-files)) ;; Project files first
+                  source))
+               ;; Limit the number of files
+               (limited-source (if (listp prioritized-source)
+                                   (seq-take prioritized-source max-files)
+                                 prioritized-source))
+               ;; Process the imports
+               (status (if (bufferp source)
+                           (with-current-buffer source
+                             (call-process-region (point-min) (point-max)
+                                                  python-interpreter
+                                                  nil (list temp nil) nil
+                                                  "-c" python--list-imports
+                                                  (or name "")))
+                         (with-current-buffer buffer
+                           (apply #'call-process
+                                  python-interpreter
+                                  nil (list temp nil) nil
+                                  "-c" python--list-imports
+                                  (or name "")
+                                  (mapcar #'file-local-name limited-source)))))
+               lines)
+          (unless (eq 0 status)
             (error "%s exited with status %s (maybe isort is missing?)"
-                    python-interpreter status))
-            (goto-char (point-min))
-            (while (not (eobp))
+                   python-interpreter status))
+          (goto-char (point-min))
+          (while (not (eobp))
             (push (buffer-substring-no-properties (point) (pos-eol))
-                    lines)
+                  lines)
             (forward-line 1))
-            (nreverse lines))))))
+          (nreverse lines))))))
 
 (use-package lsp-mode
   :defer t
@@ -670,6 +685,7 @@
 (use-package ruff-format
   :ensure t
   :defer t
+  :config (setq ruff-format-command "ruff")
   :hook
     (python-ts-mode . ruff-format-on-save-mode)
     (python-mode . ruff-format-on-save-mode))
