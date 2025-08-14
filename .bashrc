@@ -38,7 +38,6 @@ nuke-docker() { ds && drm && drmi && drmv; }
 alias mbe="cd ~/dev/whatnot_backend/"
 alias live="cd ~/dev/whatnot_live/"
 
-
 # aws sso login --profile whatnot_eng_user
 # aws sso login
 # aws --profile whatnot_eng_user sts get-caller-identity
@@ -80,3 +79,70 @@ function curltime {
          time_total:  %{time_total}\n
 EOF
 }
+
+
+
+# git worktrees
+gwt() {
+      if [ -z "$1" ]; then
+          echo "Usage: gwt <branch_name>"
+          echo "Available worktrees:"
+          local git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+          if [ -n "$git_common_dir" ]; then
+              local git_root=$(dirname "$git_common_dir")
+              if [ -d "$git_root/worktrees" ]; then
+                  ls -1 "$git_root/worktrees" 2>/dev/null | sed 's/^/  /'
+              else
+                  echo "  (no worktrees found)"
+              fi
+          fi
+          return 1
+      fi
+
+      local git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+      if [ -z "$git_common_dir" ]; then
+          echo "Error: Not in a git repository"
+          return 1
+      fi
+
+      local git_root=$(dirname "$git_common_dir")
+      cd "$git_root"
+
+      # Check if worktree already exists
+      if [ -d "worktrees/$1" ]; then
+          echo "Worktree '$1' already exists, changing to it..."
+          cd "worktrees/$1"
+          return 0
+      fi
+
+      # Create new worktree
+      git worktree add "worktrees/$1" -b "$1" origin/main
+      echo "use nix" > "worktrees/$1/.envrc"
+      direnv allow "worktrees/$1"
+      cd "worktrees/$1"
+  }
+  # Bash completion function
+_gwt_completion() {
+      local cur="${COMP_WORDS[COMP_CWORD]}"
+      local git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+
+      if [ -z "$git_common_dir" ]; then
+          return 0
+      fi
+
+      local git_root=$(dirname "$git_common_dir")
+      local worktrees_dir="$git_root/worktrees"
+      if [ -d "$worktrees_dir" ]; then
+          local worktrees=$(ls -1 "$worktrees_dir" 2>/dev/null | grep -E "^$cur")
+          COMPREPLY=($(compgen -W "$worktrees" -- "$cur"))
+      fi
+  }
+
+  # Register the completion
+complete -F _gwt_completion gwt
+
+alias serena="claude mcp add serena -- uvx --from git+https://github.com/oraios/serena serena-mcp-server --context ide-assistant --project $(pwd)"
+
+export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
+
+

@@ -34,6 +34,7 @@
   ;; (setq aw-background nil)
   )
 
+
 (use-package ag
   :defer t
   :ensure t
@@ -54,6 +55,7 @@
   ("C-," . avy-pop-mark)
   ("C-;" . avy-goto-char)
   ("C-c C-;" . avy-goto-line))
+
 
 (use-package browse-kill-ring :defer t :ensure t)
 
@@ -80,6 +82,19 @@
          ("C-c C-1"  . consult-flymake)
          ("C-x r b" . consult-bookmark)
          ))
+;; (use-package copilot
+;;   :hook ((prog-mode . copilot-mode)
+;;          (python-mode . copilot-mode)) ;; Specifically enable for Python
+;;   :bind (:map copilot-completion-map
+;;               ("<tab>" . copilot-accept-completion)
+;;               ("C-<tab>" . copilot-next-completion)
+;;               ("M-<tab>" . copilot-accept-completion-by-word)
+;;               ("C-M-<tab>" . copilot-accept-completion-by-line))
+;;   )
+
+(use-package copilot-chat
+  :config (setq copilot-chat-frontend 'org)
+  )
 
 (use-package csv-mode
   :defer t
@@ -94,7 +109,7 @@
   :ensure t
   :init
   :config
-  (setq direnv-show-paths-in-summary nil)
+  (setq direnv-show-paths-in-summary t)
   (setq direnv-always-show-summary t)
   (direnv-mode))
 
@@ -508,9 +523,23 @@
     (lsp-diagnostics-updated . cond-add-elixir-credo)
   :commands (lsp))
 
-(use-package python-ts-mode
-  :ensure nil
-  :bind (("C-c TAB TAB" . python-import-symbol-at-point)))
+(defun copy-python-module-name ()
+    "Copy the Python module name of the current buffer to the kill ring.
+The module name is derived from the file path by replacing directory
+separators with dots and removing the `.py` extension."
+    (interactive)
+    (if-let ((file-name (buffer-file-name)))
+        (let* ((relative-path (file-relative-name file-name (project-root (project-current))))
+               (module-name (string-replace "/" "." (file-name-sans-extension relative-path))))
+          (kill-new module-name)
+          (message "Copied Python module name: %s" module-name))
+      (message "Current buffer is not visiting a file.")))
+
+;; (add-hook 'python-mode-hook
+;;           (lambda ()
+;;             (setup-python-module-name-function)
+;;             (local-set-key (kbd "C-c m") #'copy-python-module-name)))
+;;   :bind (("C-c TAB TAB" . python-import-symbol-at-point)))
 
 (use-package lsp-ui
   :ensure t)
@@ -533,7 +562,10 @@
   :defer t
   :ensure t
   :after (evil)
-  :config (setq magit-list-refs-sortby "-committerdate")
+  :config 
+  (setq magit-list-refs-sortby "-committerdate")
+  (evil-define-key 'normal magit-status-mode-map
+    "Z" 'magit-worktree)
   :hook
   (magit-pre-refresh-hook . diff-hl-magit-pre-refresh)
   (magit-post-refresh-hook . diff-hl-magit-post-refresh)
@@ -559,13 +591,10 @@
 
 (use-package midnight :ensure t)
 
-(use-package evil-multiedit
-  :after (evil) :ensure t :config (evil-multiedit-default-keybinds))
-
-(use-package nix-mode
-  :defer t
-  :ensure t
-  :mode "\\.nix\\'")
+(use-package native-complete
+    :ensure t
+    :config
+    (native-complete-setup-bash))
 
 (use-package orderless
   :ensure t
@@ -577,6 +606,10 @@
         completion-category-defaults nil
         completion-category-overrides '((file (styles partial-completion)))))
 
+(use-package org
+  :config
+  (setq fill-column 80) ; Set the fill column to 80
+  :hook (org-mode . auto-fill-mode))
 ;; org-mode
 ;; (require 'org)
 ;; (add-hook 'org-mode-hook 'auto-revert-mode)
@@ -701,6 +734,10 @@
 
 (use-package string-inflection :ensure t :defer t)
 
+(use-package shell-maker
+  :ensure t
+  )
+
 (use-package treesit-auto
   :custom
   (treesit-auto-install 'prompt)
@@ -719,6 +756,7 @@
 ;;   :config (global-undo-tree-mode))
 
 (use-package vertico
+  :ensure t
   :init
   (vertico-mode)
 
@@ -810,7 +848,6 @@
     (kill-new filename)
     (message "Copied buffer file name '%s' to the clipboard" filename)))
 
-
 (defun create-python-import ()
   (interactive)
   (let ((import (concat (concat "from " (replace-regexp-in-string "/" "."
@@ -883,7 +920,7 @@
    '("d89e15a34261019eec9072575d8a924185c27d3da64899905f8548cbd9491a36" "871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8" "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7" "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default))
  '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
  '(package-selected-packages
-   '(ruff-format importmagic python-ts-mode protobuf-mode diff-hl-mode git-gutter csv-mode csv treesit-auto evil-multiedit hl-todo embark-consult hl-todo-modo zenburn-theme yari yaml-mode ws-butler which-key wgrep-ag web-mode swift-mode string-inflection spaceline solarized-theme rubocop ripgrep restclient projectile org-present orderless nix-mode marginalia lsp-ui lsp-pyright lsp-origami lsp-java kotlin-mode json-mode jq-mode gruvbox-theme groovy-mode graphql-mode go-mode git-link flycheck flx-ido exec-path-from-shell evil-surround evil-org evil-matchit evil-collection erlang elm-mode elixir-ts-mode elixir-mode dumb-jump direnv consult company browse-kill-ring auto-package-update auctex ag)))
+   '(native-complete company-shell bash-completion copilot-chat copilot ruff-format importmagic python-ts-mode protobuf-mode diff-hl-mode git-gutter csv-mode csv treesit-auto evil-multiedit hl-todo embark-consult hl-todo-modo zenburn-theme yari yaml-mode ws-butler which-key wgrep-ag web-mode swift-mode string-inflection spaceline solarized-theme rubocop ripgrep restclient projectile org-present orderless nix-mode marginalia lsp-ui lsp-pyright lsp-origami lsp-java kotlin-mode json-mode jq-mode gruvbox-theme groovy-mode graphql-mode go-mode git-link flycheck flx-ido exec-path-from-shell evil-surround evil-org evil-matchit evil-collection erlang elm-mode elixir-ts-mode elixir-mode dumb-jump direnv consult company browse-kill-ring auto-package-update auctex ag)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
