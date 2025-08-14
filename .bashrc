@@ -138,11 +138,8 @@ _gwt_completion() {
       fi
   }
 
+export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
   # Register the completion
 complete -F _gwt_completion gwt
 
-alias serena="claude mcp add serena -- uvx --from git+https://github.com/oraios/serena serena-mcp-server --context ide-assistant --project $(pwd)"
-
-export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
-
-
+alias claude="/Users/ben/.claude/local/claude"
