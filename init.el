@@ -92,9 +92,9 @@
 ;;               ("C-M-<tab>" . copilot-accept-completion-by-line))
 ;;   )
 
-(use-package copilot-chat
-  :config (setq copilot-chat-frontend 'org)
-  )
+;; (use-package copilot-chat
+;;   :config (setq copilot-chat-frontend 'org)
+;;   )
 
 (use-package csv-mode
   :defer t
@@ -671,7 +671,30 @@ separators with dots and removing the `.py` extension."
   :config
   (setq projectile-completion-system 'auto)
   (projectile-mode)
-  (projectile-tags-exclude-patterns))
+  (projectile-tags-exclude-patterns)
+
+  ;; Automatically add project to LSP workspace when switching projects
+  (defun my/projectile-add-to-lsp-workspace ()
+    "Add current project root to LSP workspace folders and restart LSP."
+    (when (and (featurep 'lsp-mode)
+               (projectile-project-root)
+               (file-directory-p (projectile-project-root)))
+      (lsp-workspace-folders-add (projectile-project-root))
+      ;; Restart LSP workspaces to pick up the new folder
+      (when (lsp-workspaces)
+        ;; (let ((buf (current-buffer)))
+        ;;   ;; Set up a one-time hook to revert buffer after LSP restarts
+        ;;   (add-hook 'lsp-after-initialize-hook
+        ;;             (lambda ()
+        ;;               (when (and (buffer-live-p buf)
+        ;;                          (buffer-file-name buf))
+        ;;                 (with-current-buffer buf
+        ;;                   (revert-buffer t t t))))
+        ;;             nil t)  ; Local hook, one-time use
+          (call-interactively #'lsp-workspace-restart))))
+
+  (add-hook 'projectile-after-switch-project-hook
+            #'my/projectile-add-to-lsp-workspace))
 
 (use-package protobuf-mode :defer t :ensure t)
 

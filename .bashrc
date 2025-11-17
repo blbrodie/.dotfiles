@@ -117,9 +117,17 @@ gwt() {
 
       # Create new worktree
       git worktree add "worktrees/$1" -b "$1" origin/main
-      echo "use nix" > "worktrees/$1/.envrc"
-      direnv allow "worktrees/$1"
+      if [ -e ".envrc" ]; then
+        cp .envrc worktrees/$1/.envrc
+        direnv allow "worktrees/$1"
+      fi
+      if [ -e ".env" ]; then
+        cp .env worktrees/$1/.env
+      fi
       cd "worktrees/$1"
+
+      # add to emacs projectile
+      emacsclient -e "(projectile-add-known-project \"$(pwd)/\")"
   }
   # Bash completion function
 _gwt_completion() {
