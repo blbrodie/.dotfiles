@@ -312,3 +312,38 @@ teardown() {
     [ "$status" -eq 0 ]
     [ -d "$TEST_REPO/worktrees/feat/a" ]
 }
+
+@test "gwt-clean: errors outside a git repo" {
+    cd /tmp
+    run gwt-clean
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"Not in a git repository"* ]]
+}
+
+@test "gwt-clean: prints 'nothing to clean' when no worktrees dir" {
+    cd "$TEST_REPO"
+    run gwt-clean
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"No worktrees to clean"* ]]
+}
+
+@test "gwt-clean: rejects unknown option" {
+    cd "$TEST_REPO"
+    run gwt-clean --bogus
+    [ "$status" -eq 2 ]
+}
+
+@test "gwt-clean: works with branch names containing '/'" {
+    create_worktree "$TEST_REPO" feat/nested/deep
+    merge_branch_to_main "$TEST_REPO" feat/nested/deep
+    cd "$TEST_REPO"
+    run gwt-clean --force
+    [ "$status" -eq 0 ]
+    [ ! -d "$TEST_REPO/worktrees/feat/nested/deep" ]
+}
+
+@test "gwt-clean: --help prints usage and exits 0" {
+    run gwt-clean --help
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Usage: gwt-clean"* ]]
+}
