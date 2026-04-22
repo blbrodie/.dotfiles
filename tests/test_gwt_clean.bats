@@ -100,3 +100,52 @@ teardown() {
     run _gwt_clean_is_merged feat/a ""
     [ "$status" -eq 0 ]
 }
+
+@test "_gwt_clean_newest_mtime: returns newest file mtime in tree" {
+    create_worktree "$TEST_REPO" feat/a
+    local wt="$TEST_REPO/worktrees/feat/a"
+    set_path_age_days "$wt" 200
+    # Now touch one file to "now"
+    touch "$wt/README.md" 2>/dev/null || touch "$wt/.branch"
+    run _gwt_clean_newest_mtime "$wt"
+    [ "$status" -eq 0 ]
+    # Should be within 60s of now
+    local now=$(date +%s)
+    [ "$((now - output))" -lt 60 ]
+}
+
+@test "_gwt_clean_is_stale: all files old => stale" {
+    create_worktree "$TEST_REPO" feat/a
+    local wt="$TEST_REPO/worktrees/feat/a"
+    set_path_age_days "$wt" 200
+    run _gwt_clean_is_stale "$wt" 120
+    [ "$status" -eq 0 ]
+}
+
+@test "_gwt_clean_is_stale: one recent file => not stale" {
+    create_worktree "$TEST_REPO" feat/a
+    local wt="$TEST_REPO/worktrees/feat/a"
+    set_path_age_days "$wt" 200
+    touch "$wt/.branch"
+    run _gwt_clean_is_stale "$wt" 120
+    [ "$status" -eq 1 ]
+}
+
+@test "_gwt_clean_is_stale: respects configurable threshold" {
+    create_worktree "$TEST_REPO" feat/a
+    local wt="$TEST_REPO/worktrees/feat/a"
+    set_path_age_days "$wt" 30
+    run _gwt_clean_is_stale "$wt" 120
+    [ "$status" -eq 1 ]
+    run _gwt_clean_is_stale "$wt" 14
+    [ "$status" -eq 0 ]
+}
+
+@test "_gwt_clean_age_days: reports integer age in days" {
+    create_worktree "$TEST_REPO" feat/a
+    local wt="$TEST_REPO/worktrees/feat/a"
+    set_path_age_days "$wt" 45
+    run _gwt_clean_age_days "$wt"
+    [ "$status" -eq 0 ]
+    [ "$output" -ge 44 ] && [ "$output" -le 46 ]
+}

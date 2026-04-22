@@ -217,6 +217,31 @@ _gwt_clean_is_clean() {
     fi
     return 0
 }
+_gwt_clean_newest_mtime() {
+    # Echoes unix timestamp of newest file anywhere in the worktree tree.
+    local wt="$1"
+    find "$wt" -type f -exec stat -f '%m' {} + 2>/dev/null | sort -n | tail -1
+}
+
+_gwt_clean_is_stale() {
+    # Usage: _gwt_clean_is_stale <worktree-path> <stale_days>
+    # Returns 0 if newest file mtime is older than stale_days.
+    local wt="$1" stale_days="$2"
+    local newest
+    newest=$(_gwt_clean_newest_mtime "$wt")
+    [ -z "$newest" ] && return 0  # empty worktree: treat as stale
+    local threshold=$(( $(date +%s) - stale_days * 86400 ))
+    [ "$newest" -lt "$threshold" ]
+}
+
+_gwt_clean_age_days() {
+    # Echoes integer age in days of newest file mtime.
+    local wt="$1"
+    local newest
+    newest=$(_gwt_clean_newest_mtime "$wt")
+    [ -z "$newest" ] && { echo 9999; return; }
+    echo $(( ($(date +%s) - newest) / 86400 ))
+}
 # --- gwt-clean: END ---
 
 export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
