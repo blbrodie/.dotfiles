@@ -3,3 +3,8 @@ if [ -r ~/.bashrc ]; then
 fi
 
 export PATH="$HOME/.poetry/bin:$PATH"
+
+# uv
+export PATH="/Users/ben/.local/bin:$PATH"
+
+. "$HOME/.local/bin/env"

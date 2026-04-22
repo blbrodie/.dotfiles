@@ -74,6 +74,8 @@
     (setq recentf-max-menu-items 100)
     (setq recentf-max-saved-items 100)
     (setq xref-show-xrefs-function 'consult-xref)
+    (setq consult-preview-key '(:debounce 0.5 any)) ; Wait seconds before previewing
+    (setq consult-async-input-debounce 0.5)
   :bind (("C-x b" . consult-buffer)
          ("C-x p b" . consult-project-buffer)
          ("C-c b" . consult-project-buffer)
@@ -109,8 +111,9 @@
   :ensure t
   :init
   :config
-  (setq direnv-show-paths-in-summary t)
-  (setq direnv-always-show-summary t)
+  ;; (setq direnv-show-paths-in-summary nil)
+  ;; (setq direnv-always-show-summary t)
+  ;; (setq direnv-use-faces-in-summary t)
   (direnv-mode))
 
 ;; (use-package dumb-jump
@@ -137,7 +140,23 @@
 ;;   (elixir-mode . eglot-ensure)
 ;;   (go-mode . eglot-ensure))
 
+(use-package eglot
+  :ensure t
+  :hook
+  ((python-mode . eglot-ensure)
+   (python-ts-mode . eglot-ensure))
+  :config
+  (setq eglot-inlay-hints-mode 0)
+  (add-to-list 'eglot-server-programs
+               '((python-mode python-ts-mode) .
+                 ("uvx" "ty" "server")))
+  :hook
+  (python-mode . (lambda() (direnv-update-environment)))
+  (python-ts-mode . (lambda() (direnv-update-environment))))
 
+;; Fix for basedpyright/pyright crash: eglot advertises dynamic file watcher
+;; support but fails to handle the registration request, causing the LSP server
+;; to crash. This disables that capability.
 (use-package emacs
   :init
   ;; vertico settings
@@ -254,7 +273,7 @@
 
   ;; Show the Embark target at point via Eldoc.  You may adjust the Eldoc
   ;; strategy, if you want to see the documentation from multiple providers.
-  (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
+  ;; (add-hook 'eldoc-documentation-functions #'embark-eldoc-first-target)
   ;; (setq eldoc-documentation-strategy #'eldoc-documentation-compose-eagerly)
 
   :config
@@ -429,99 +448,99 @@
              (not (member 'elixir-credo (flycheck-get-next-checkers 'lsp))))
     (flycheck-add-next-checker 'lsp 'elixir-credo)))
 
-(with-eval-after-load 'python
-  ;; Overwrite the `python--list-imports` function
-  (defun python--list-imports (name source)
-    "List all Python imports matching NAME in SOURCE, with a hardcoded limit of 2621 files.
-    If NAME is nil, list all imports. SOURCE can be a buffer or a
-    list of file names or directories; the latter are searched
-    recursively."
-    (let ((buffer (current-buffer))
-          (max-files 10000)  ;; Hardcoded limit
-          (project-root (or (project-root (project-current)) default-directory))) ;; Get project root
-      (with-temp-buffer
-        (let* ((temp (current-buffer))
-               ;; Prioritize project files
-               (prioritized-source
-                (if (listp source)
-                    (let ((project-files (seq-filter
-                                          (lambda (file)
-                                            (string-prefix-p project-root (file-truename file)))
-                                          source))
-                          (non-project-files (seq-remove
-                                              (lambda (file)
-                                                (string-prefix-p project-root (file-truename file)))
-                                              source)))
-                      (append project-files non-project-files)) ;; Project files first
-                  source))
-               ;; Limit the number of files
-               (limited-source (if (listp prioritized-source)
-                                   (seq-take prioritized-source max-files)
-                                 prioritized-source))
-               ;; Process the imports
-               (status (if (bufferp source)
-                           (with-current-buffer source
-                             (call-process-region (point-min) (point-max)
-                                                  python-interpreter
-                                                  nil (list temp nil) nil
-                                                  "-c" python--list-imports
-                                                  (or name "")))
-                         (with-current-buffer buffer
-                           (apply #'call-process
-                                  python-interpreter
-                                  nil (list temp nil) nil
-                                  "-c" python--list-imports
-                                  (or name "")
-                                  (mapcar #'file-local-name limited-source)))))
-               lines)
-          (unless (eq 0 status)
-            (error "%s exited with status %s (maybe isort is missing?)"
-                   python-interpreter status))
-          (goto-char (point-min))
-          (while (not (eobp))
-            (push (buffer-substring-no-properties (point) (pos-eol))
-                  lines)
-            (forward-line 1))
-          (nreverse lines))))))
+;; (with-eval-after-load 'python
+;;   ;; Overwrite the `python--list-imports` function
+;;   (defun python--list-imports (name source)
+;;     "List all Python imports matching NAME in SOURCE, with a hardcoded limit of 2621 files.
+;;     If NAME is nil, list all imports. SOURCE can be a buffer or a
+;;     list of file names or directories; the latter are searched
+;;     recursively."
+;;     (let ((buffer (current-buffer))
+;;           (max-files 10000)  ;; Hardcoded limit
+;;           (project-root (or (project-root (project-current)) default-directory))) ;; Get project root
+;;       (with-temp-buffer
+;;         (let* ((temp (current-buffer))
+;;                ;; Prioritize project files
+;;                (prioritized-source
+;;                 (if (listp source)
+;;                     (let ((project-files (seq-filter
+;;                                           (lambda (file)
+;;                                             (string-prefix-p project-root (file-truename file)))
+;;                                           source))
+;;                           (non-project-files (seq-remove
+;;                                               (lambda (file)
+;;                                                 (string-prefix-p project-root (file-truename file)))
+;;                                               source)))
+;;                       (append project-files non-project-files)) ;; Project files first
+;;                   source))
+;;                ;; Limit the number of files
+;;                (limited-source (if (listp prioritized-source)
+;;                                    (seq-take prioritized-source max-files)
+;;                                  prioritized-source))
+;;                ;; Process the imports
+;;                (status (if (bufferp source)
+;;                            (with-current-buffer source
+;;                              (call-process-region (point-min) (point-max)
+;;                                                   python-interpreter
+;;                                                   nil (list temp nil) nil
+;;                                                   "-c" python--list-imports
+;;                                                   (or name "")))
+;;                          (with-current-buffer buffer
+;;                            (apply #'call-process
+;;                                   python-interpreter
+;;                                   nil (list temp nil) nil
+;;                                   "-c" python--list-imports
+;;                                   (or name "")
+;;                                   (mapcar #'file-local-name limited-source)))))
+;;                lines)
+;;           (unless (eq 0 status)
+;;             (error "%s exited with status %s (maybe isort is missing?)"
+;;                    python-interpreter status))
+;;           (goto-char (point-min))
+;;           (while (not (eobp))
+;;             (push (buffer-substring-no-properties (point) (pos-eol))
+;;                   lines)
+;;             (forward-line 1))
+;;           (nreverse lines))))))
 
-(use-package lsp-mode
-  :defer t
-  :ensure t
-  ;; :after (lsp-ui)
-  :init
-    (setq lsp-elixir-server-command '("language_server.sh"))
-    (setq gc-cons-threshold 100000000)
-    (setq read-process-output-max (* 1024 1024)) ;; 1mb
-    ;; (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
-  :config
-    (setq lsp-idle-delay 0.500)
-    (setq lsp-log-io nil)
-    (setq lsp-headerline-breadcrumb-enable t)
-    (setq lsp-enable-file-watchers nil)
-    (setq lsp-elixir-suggest-specs nil)
-    (setq lsp-ui-sideline-enable nil)
-    (setq lsp-modeline-diagnostics-enable t)
-    (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
-    (setq lsp-disabled-clients '(ruff))
-    (setq lsp-pylsp-plugins-rope-autoimport-completions-enabled nil)
-    (setq lsp-pylsp-plugins-rope-autoimport-code-actions-enabled nil)
-    (setq lsp-pylsp-plugins-rope-autoimport-enabled nil)
-  :hook
-    (kotlin-mode . lsp)
-    (elixir-mode . (lambda() (direnv-update-environment) (lsp)))
-    (elixir-ts-mode . (lambda() (direnv-update-environment) (lsp)))
-    (elm-mode    . lsp)
-    (java-mode   . lsp)
-    (tsx-ts-mode . (lambda() (message "running lsp hook tsx-ts-mode") (lsp)))
-    (tsx-mode . (lambda() (message "running lsp hook tsx-mode") (lsp)))
-    (typescript-ts-base-mode . (lambda() (message "running lsp hook typescript-ts-base-mode") (lsp)))
-    (typescript-mode . lsp)
-    (python-mode . (lambda() (direnv-update-environment) (lsp)))
-    (python-ts-mode . (lambda() (direnv-update-environment) (lsp)))
-    (lsp-mode    . lsp-enable-which-key-integration)
-    (lsp-mode . (lambda () (evil-local-set-key 'normal (kbd "gr") 'lsp-find-references)))
-    (lsp-diagnostics-updated . cond-add-elixir-credo)
-  :commands (lsp))
+;; (use-package lsp-mode
+;;   :defer t
+;;   :ensure t
+;;   ;; :after (lsp-ui)
+;;   :init
+;;     (setq lsp-elixir-server-command '("language_server.sh"))
+;;     (setq gc-cons-threshold 100000000)
+;;     (setq read-process-output-max (* 1024 1024)) ;; 1mb
+;;     ;; (add-to-list 'exec-path (concat user-emacs-directory "kotlin-ls/bin"))
+;;   :config
+;;     (setq lsp-idle-delay 0.500)
+;;     (setq lsp-log-io nil)
+;;     (setq lsp-headerline-breadcrumb-enable t)
+;;     (setq lsp-enable-file-watchers nil)
+;;     (setq lsp-elixir-suggest-specs nil)
+;;     (setq lsp-ui-sideline-enable nil)
+;;     (setq lsp-modeline-diagnostics-enable t)
+;;     (define-key lsp-mode-map (kbd "C-c l") lsp-command-map)
+;;     (setq lsp-disabled-clients '(ruff))
+;;     (setq lsp-pylsp-plugins-rope-autoimport-completions-enabled nil)
+;;     (setq lsp-pylsp-plugins-rope-autoimport-code-actions-enabled nil)
+;;     (setq lsp-pylsp-plugins-rope-autoimport-enabled nil)
+;;   :hook
+;;     (kotlin-mode . lsp)
+;;     (elixir-mode . (lambda() (direnv-update-environment) (lsp)))
+;;     (elixir-ts-mode . (lambda() (direnv-update-environment) (lsp)))
+;;     (elm-mode    . lsp)
+;;     (java-mode   . lsp)
+;;     (tsx-ts-mode . (lambda() (message "running lsp hook tsx-ts-mode") (lsp)))
+;;     (tsx-mode . (lambda() (message "running lsp hook tsx-mode") (lsp)))
+;;     (typescript-ts-base-mode . (lambda() (message "running lsp hook typescript-ts-base-mode") (lsp)))
+;;     (typescript-mode . lsp)
+;;     (python-mode . (lambda() (direnv-update-environment) (lsp)))
+;;     (python-ts-mode . (lambda() (direnv-update-environment) (lsp)))
+;;     (lsp-mode    . lsp-enable-which-key-integration)
+;;     (lsp-mode . (lambda () (evil-local-set-key 'normal (kbd "gr") 'lsp-find-references)))
+;;     (lsp-diagnostics-updated . cond-add-elixir-credo)
+;;   :commands (lsp))
 
 (defun copy-python-module-name ()
     "Copy the Python module name of the current buffer to the kill ring.
@@ -541,8 +560,8 @@ separators with dots and removing the `.py` extension."
 ;;             (local-set-key (kbd "C-c m") #'copy-python-module-name)))
 ;;   :bind (("C-c TAB TAB" . python-import-symbol-at-point)))
 
-(use-package lsp-ui
-  :ensure t)
+;; (use-package lsp-ui
+;;   :ensure t)
 
 ;; (use-package lsp-pyright
 ;;   :ensure t
@@ -562,7 +581,7 @@ separators with dots and removing the `.py` extension."
   :defer t
   :ensure t
   :after (evil)
-  :config 
+  :config
   (setq magit-list-refs-sortby "-committerdate")
   (evil-define-key 'normal magit-status-mode-map
     "Z" 'magit-worktree)
@@ -667,34 +686,11 @@ separators with dots and removing the `.py` extension."
   :defer t
   :ensure t
   :bind-keymap
-  ("C-c p" . projectile-command-map)
+    ("C-c p" . projectile-command-map)
   :config
-  (setq projectile-completion-system 'auto)
-  (projectile-mode)
-  (projectile-tags-exclude-patterns)
-
-  ;; Automatically add project to LSP workspace when switching projects
-  (defun my/projectile-add-to-lsp-workspace ()
-    "Add current project root to LSP workspace folders and restart LSP."
-    (when (and (featurep 'lsp-mode)
-               (projectile-project-root)
-               (file-directory-p (projectile-project-root)))
-      (lsp-workspace-folders-add (projectile-project-root))
-      ;; Restart LSP workspaces to pick up the new folder
-      (when (lsp-workspaces)
-        ;; (let ((buf (current-buffer)))
-        ;;   ;; Set up a one-time hook to revert buffer after LSP restarts
-        ;;   (add-hook 'lsp-after-initialize-hook
-        ;;             (lambda ()
-        ;;               (when (and (buffer-live-p buf)
-        ;;                          (buffer-file-name buf))
-        ;;                 (with-current-buffer buf
-        ;;                   (revert-buffer t t t))))
-        ;;             nil t)  ; Local hook, one-time use
-          (call-interactively #'lsp-workspace-restart))))
-
-  (add-hook 'projectile-after-switch-project-hook
-            #'my/projectile-add-to-lsp-workspace))
+    (setq projectile-completion-system 'auto)
+    (projectile-mode)
+  )
 
 (use-package protobuf-mode :defer t :ensure t)
 
@@ -804,6 +800,9 @@ separators with dots and removing the `.py` extension."
              :defer t
              :ensure t)
 
+(use-package vterm
+    :ensure t)
+
 (use-package web-mode
   :defer t
   :ensure t
@@ -855,6 +854,9 @@ separators with dots and removing the `.py` extension."
 
 ;; END OF USE-PACKAGE
 
+;; don't open file open in new frame
+(setq ns-pop-up-frames nil)
+
 
 (global-set-key (kbd "C-x C-z") 'maximize-window)
 
@@ -898,6 +900,7 @@ separators with dots and removing the `.py` extension."
 (defun shell3 () "Switch to or create *shell-3."
        (interactive) (shell "*shell-3*"))
 
+
 (global-set-key (kbd "C-1") 'shell1)
 (global-set-key (kbd "C-2") 'shell2)
 (global-set-key (kbd "C-3") 'shell3)
@@ -925,8 +928,6 @@ separators with dots and removing the `.py` extension."
 (load "server")
 (unless (server-running-p) (server-start))
 
-(setenv "EDITOR" "emacsclient")
-
 ;; babel
 (org-babel-do-load-languages
  'org-babel-load-languages
@@ -940,10 +941,22 @@ separators with dots and removing the `.py` extension."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("d89e15a34261019eec9072575d8a924185c27d3da64899905f8548cbd9491a36" "871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8" "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7" "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default))
+   '("d89e15a34261019eec9072575d8a924185c27d3da64899905f8548cbd9491a36"
+     "871b064b53235facde040f6bdfa28d03d9f4b966d8ce28fb1725313731a2bcc8"
+     "7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98"
+     "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7"
+     "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default))
  '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
  '(package-selected-packages
-   '(native-complete company-shell bash-completion copilot-chat copilot ruff-format importmagic python-ts-mode protobuf-mode diff-hl-mode git-gutter csv-mode csv treesit-auto evil-multiedit hl-todo embark-consult hl-todo-modo zenburn-theme yari yaml-mode ws-butler which-key wgrep-ag web-mode swift-mode string-inflection spaceline solarized-theme rubocop ripgrep restclient projectile org-present orderless nix-mode marginalia lsp-ui lsp-pyright lsp-origami lsp-java kotlin-mode json-mode jq-mode gruvbox-theme groovy-mode graphql-mode go-mode git-link flycheck flx-ido exec-path-from-shell evil-surround evil-org evil-matchit evil-collection erlang elm-mode elixir-ts-mode elixir-mode dumb-jump direnv consult company browse-kill-ring auto-package-update auctex ag)))
+   '(ag auctex auto-package-update browse-kill-ring company csv-mode diff-hl direnv
+        elixir-mode elm-mode embark-consult erlang evil-collection evil-matchit
+        evil-surround exec-path-from-shell flx-ido flycheck git-link go-mode
+        graphql-mode groovy-mode gruvbox-theme hl-todo jq-mode json-mode
+        kotlin-mode lsp-java lsp-pyright lsp-ui magit marginalia native-complete
+        orderless projectile protobuf-mode restclient ripgrep rubocop
+        ruff-format shell-maker solarized-theme string-inflection swift-mode
+        treesit-auto vertico vterm web-mode wgrep-ag ws-butler yaml-mode yari
+        zenburn-theme)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

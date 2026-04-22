@@ -8,7 +8,7 @@ export CLICOLOR=1
 # . /usr/local/opt/asdf/etc/bash_completion.d/asdf.bash
 
 # Don't set if already set by emacs
-export EDITOR=${EDITOR:='emacsclient -t --alternate-editor=""'}
+export EDITOR='emacs -nw'
 
 # build erlang with docs
 export KERL_BUILD_DOCS=yes
@@ -29,11 +29,12 @@ function killport {
 export AWS_PROFILE=whatnot_eng_user
 
 
-ds() { docker ps -a | awk '{print $1}' | grep -v CONTAINER | xargs docker stop; }
-drm() { docker ps -a | awk '{print $1}' | grep -v CONTAINER | xargs docker rm -f; }
-drmi() { docker images | awk '{print $3}' | grep -v IMAGE | xargs docker rmi -f; }
-drmv() { docker volume rm $(docker volume ls -q); }
-nuke-docker() { ds && drm && drmi && drmv; }
+nuke-docker() {
+  docker stop $(docker ps -aq) 2>/dev/null
+  docker rm $(docker ps -aq) 2>/dev/null
+  docker volume rm $(docker volume ls -q) 2>/dev/null
+  docker system prune -a -f
+}
 
 alias mbe="cd ~/dev/whatnot_backend/"
 alias live="cd ~/dev/whatnot_live/"
@@ -56,10 +57,10 @@ a_pod() {
 export PATH=$PATH:$(brew --prefix)/opt/python/libexec/bin
 export PATH=$PATH:~/.emacs.d/bin
 
-# Nix
-if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
-  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-fi
+# # Nix
+# if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+#   . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+# fi
 
 # End Nix
 # shellcheck source=~/.bashrc.local
@@ -83,18 +84,31 @@ EOF
 
 
 # git worktrees
+_gwt_list() {
+      # Prints worktree paths relative to <repo>/worktrees/, one per line.
+      # Uses `git worktree list` so branch names containing '/' work correctly.
+      local git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+      [ -z "$git_common_dir" ] && return
+      local git_root=$(dirname "$git_common_dir")
+      local prefix="$git_root/worktrees/"
+      git worktree list --porcelain 2>/dev/null | awk -v prefix="$prefix" '
+          /^worktree / {
+              path = substr($0, 10)
+              if (substr(path, 1, length(prefix)) == prefix) {
+                  print substr(path, length(prefix) + 1)
+              }
+          }
+      '
+}
 gwt() {
       if [ -z "$1" ]; then
           echo "Usage: gwt <branch_name>"
           echo "Available worktrees:"
-          local git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
-          if [ -n "$git_common_dir" ]; then
-              local git_root=$(dirname "$git_common_dir")
-              if [ -d "$git_root/worktrees" ]; then
-                  ls -1 "$git_root/worktrees" 2>/dev/null | sed 's/^/  /'
-              else
-                  echo "  (no worktrees found)"
-              fi
+          local wts=$(_gwt_list)
+          if [ -n "$wts" ]; then
+              echo "$wts" | sed 's/^/  /'
+          else
+              echo "  (no worktrees found)"
           fi
           return 1
       fi
@@ -108,15 +122,36 @@ gwt() {
       local git_root=$(dirname "$git_common_dir")
       cd "$git_root"
 
-      # Check if worktree already exists
+      # Check if worktree already exists at the expected path
       if [ -d "worktrees/$1" ]; then
           echo "Worktree '$1' already exists, changing to it..."
           cd "worktrees/$1"
           return 0
       fi
 
+      # Check if the branch is already checked out in *some other* worktree
+      local existing_worktree=$(git worktree list --porcelain 2>/dev/null | awk -v branch="refs/heads/$1" '
+          /^worktree / { path = substr($0, 10) }
+          $0 == "branch " branch { print path; exit }
+      ')
+      if [ -n "$existing_worktree" ]; then
+          echo "Branch '$1' is already checked out at $existing_worktree, changing to it..."
+          cd "$existing_worktree" || return 1
+          return 0
+      fi
+
       # Create new worktree
-      git worktree add "worktrees/$1" -b "$1" origin/main
+      git fetch
+      if git show-ref --verify --quiet "refs/heads/$1"; then
+          # Local branch exists, use it
+          git worktree add "worktrees/$1" "$1" || return 1
+      elif git show-ref --verify --quiet "refs/remotes/origin/$1"; then
+          # Remote branch exists, create tracking branch
+          git worktree add "worktrees/$1" --track -b "$1" "origin/$1" || return 1
+      else
+          # Create new branch from origin/main
+          git worktree add "worktrees/$1" -b "$1" origin/main || return 1
+      fi
       if [ -e ".envrc" ]; then
         cp .envrc worktrees/$1/.envrc
         direnv allow "worktrees/$1"
@@ -132,22 +167,57 @@ gwt() {
   # Bash completion function
 _gwt_completion() {
       local cur="${COMP_WORDS[COMP_CWORD]}"
-      local git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
-
-      if [ -z "$git_common_dir" ]; then
-          return 0
-      fi
-
-      local git_root=$(dirname "$git_common_dir")
-      local worktrees_dir="$git_root/worktrees"
-      if [ -d "$worktrees_dir" ]; then
-          local worktrees=$(ls -1 "$worktrees_dir" 2>/dev/null | grep -E "^$cur")
-          COMPREPLY=($(compgen -W "$worktrees" -- "$cur"))
-      fi
+      local worktrees=$(_gwt_list)
+      COMPREPLY=($(compgen -W "$worktrees" -- "$cur"))
   }
-
-export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
-  # Register the completion
+# Register the completion
 complete -F _gwt_completion gwt
 
-alias claude="/Users/ben/.claude/local/claude"
+export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
+
+
+# ---------------------------------------
+# Whatnot MBE Access
+
+# slab: https://whatnot.slab.com/posts/accessing-infrastructure-locally-ifh1gde0#h6e5m-quick-start-to-access-mbe-in-prod
+
+# 1. Login to Twingate on local machine
+# 2. Request access to StrongDM via /appstore in Slack (SDM - Engineering Base)
+# 3. Request access to Amazon Web Services via /appstore in Slack (Read/Write (Prod/Stage Envs))
+# 4. Open StrongDM, authenticate via Okta
+mbe-prod() {
+    sdm connect prod1-use1-eng-admin
+    sdm kubernetes update-config prod1-use1-eng-admin
+    kubectl exec -i -t $(kubectl get pods -n main-backend | grep -v "main-backend-gql" | grep main-backend | cut -d " " -f1 | head -1) -n main-backend -- bash
+}
+
+mbe-stage() {
+    sdm connect stage2-use1-eng-user
+    sdm kubernetes update-config stage2-use1-eng-user
+    kubectl exec -i -t $(kubectl get pods -n main-backend | grep -v "main-backend-gql" | grep main-backend | cut -d " " -f1 | head -1) -n main-backend -- bash
+}
+# ---------------------------------------
+
+export PATH=~/dev/whatnot/scripts:$PATH
+
+vterm_printf() {
+    if [ -n "$TMUX" ] \
+        && { [ "${TERM%%-*}" = "tmux" ] \
+            || [ "${TERM%%-*}" = "screen" ]; }; then
+        # Tell tmux to pass the escape sequences through
+        printf "\ePtmux;\e\e]%s\007\e\\" "$1"
+    elif [ "${TERM%%-*}" = "screen" ]; then
+        # GNU screen (screen, screen-256color, screen-256color-bce)
+        printf "\eP\e]%s\007\e\\" "$1"
+    else
+        printf "\e]%s\e\\" "$1"
+    fi
+}
+
+
+# uv
+export PATH="/Users/ben/.local/bin:$PATH"
+
+. "$HOME/.local/bin/env"
+
+alias claude='claude --model opus'
