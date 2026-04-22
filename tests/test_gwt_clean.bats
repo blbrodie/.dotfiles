@@ -17,3 +17,26 @@ teardown() {
     [ "$status" -eq 0 ]
     [ "$output" = "main" ]
 }
+
+@test "_gwt_clean_default_branch returns main when main exists" {
+    cd "$TEST_REPO"
+    run _gwt_clean_default_branch
+    [ "$status" -eq 0 ]
+    [ "$output" = "main" ]
+}
+
+@test "_gwt_clean_default_branch returns master when only master exists" {
+    cd "$TEST_REPO"
+    git branch -m main master
+    run _gwt_clean_default_branch
+    [ "$status" -eq 0 ]
+    [ "$output" = "master" ]
+}
+
+@test "_gwt_clean_default_branch returns empty when neither exists" {
+    cd "$TEST_REPO"
+    git branch -m main dev
+    run _gwt_clean_default_branch
+    [ "$status" -eq 0 ]
+    [ "$output" = "" ]
+}

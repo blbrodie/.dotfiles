@@ -174,6 +174,14 @@ _gwt_completion() {
 complete -F _gwt_completion gwt
 
 # --- gwt-clean: BEGIN ---
+_gwt_clean_default_branch() {
+    # Echo "main" or "master" (whichever exists locally), or empty if neither.
+    if git show-ref --verify --quiet refs/heads/main 2>/dev/null; then
+        echo "main"
+    elif git show-ref --verify --quiet refs/heads/master 2>/dev/null; then
+        echo "master"
+    fi
+}
 # --- gwt-clean: END ---
 
 export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
