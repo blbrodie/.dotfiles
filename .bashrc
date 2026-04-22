@@ -182,6 +182,26 @@ _gwt_clean_default_branch() {
         echo "master"
     fi
 }
+_gwt_clean_is_clean() {
+    # Usage: _gwt_clean_is_clean <worktree-path>
+    # Returns 0 if clean. Returns 1 and echoes reason if not.
+    local wt="$1"
+    if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then
+        echo "uncommitted changes"
+        return 1
+    fi
+    if ! git -C "$wt" rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+        echo "no upstream"
+        return 1
+    fi
+    local unpushed
+    unpushed=$(git -C "$wt" rev-list --count @{u}..HEAD 2>/dev/null)
+    if [ -n "$unpushed" ] && [ "$unpushed" != "0" ]; then
+        echo "unpushed commits ($unpushed)"
+        return 1
+    fi
+    return 0
+}
 # --- gwt-clean: END ---
 
 export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"

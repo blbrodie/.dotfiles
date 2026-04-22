@@ -40,3 +40,32 @@ teardown() {
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
+
+@test "_gwt_clean_is_clean: pushed & untouched worktree is clean" {
+    create_worktree "$TEST_REPO" feat/a
+    run _gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
+    [ "$status" -eq 0 ]
+}
+
+@test "_gwt_clean_is_clean: uncommitted changes => not clean" {
+    create_worktree "$TEST_REPO" feat/a
+    dirty_worktree "$TEST_REPO/worktrees/feat/a"
+    run _gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"uncommitted"* ]]
+}
+
+@test "_gwt_clean_is_clean: no upstream => not clean" {
+    create_worktree "$TEST_REPO" feat/a --no-push
+    run _gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"no upstream"* ]]
+}
+
+@test "_gwt_clean_is_clean: unpushed commits => not clean" {
+    create_worktree "$TEST_REPO" feat/a
+    unpushed_commit_in_worktree "$TEST_REPO/worktrees/feat/a"
+    run _gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"unpushed"* ]]
+}
