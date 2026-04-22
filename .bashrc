@@ -173,6 +173,9 @@ _gwt_completion() {
 # Register the completion
 complete -F _gwt_completion gwt
 
+# --- gwt-clean: BEGIN ---
+# --- gwt-clean: END ---
+
 export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
 
 

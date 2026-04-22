@@ -13,3 +13,6 @@ bash:
 
 tmux:
 	ln -s $$(pwd)/.tmux.conf ~/.tmux.conf
+
+test:
+	bats tests/
