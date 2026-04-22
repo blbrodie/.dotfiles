@@ -384,8 +384,30 @@ gwt-clean() {
         return 0
     fi
 
-    # --force path filled in Task 8
-    return 0
+    echo ""
+    echo "Deleting..."
+    local deleted=0 freed_kb=0 i=0
+    while [ "$i" -lt "${#to_delete_paths[@]}" ]; do
+        local wt="${to_delete_paths[$i]}"
+        local br="${to_delete_branches[$i]}"
+        local mg="${to_delete_merged[$i]}"
+        local sz; sz=$(_gwt_clean_dir_size_kb "$wt")
+        if (cd "$git_root" && git worktree remove "$wt" 2>/dev/null); then
+            deleted=$((deleted + 1))
+            freed_kb=$((freed_kb + sz))
+            if [ "$mg" = "1" ] && [ -n "$br" ]; then
+                (cd "$git_root" && git branch -d "$br" 2>/dev/null) || \
+                    echo "  (kept branch $br: not fully merged locally)"
+            fi
+        else
+            echo "  Warning: failed to remove $wt; skipping"
+        fi
+        i=$((i + 1))
+    done
+    (cd "$git_root" && git worktree prune 2>/dev/null)
+    echo ""
+    local freed_human; freed_human=$(_gwt_clean_format_kb "$freed_kb")
+    echo "Deleted $deleted worktrees, freed ~${freed_human}"
 }
 # --- gwt-clean: END ---
 

@@ -254,3 +254,61 @@ teardown() {
     [[ "$output" == *"1 will be deleted"* ]]
     [[ "$output" == *"Reclaimable"* ]]
 }
+
+@test "gwt-clean --force: removes merged+clean worktree" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run gwt-clean --force
+    [ "$status" -eq 0 ]
+    [ ! -d "$TEST_REPO/worktrees/feat/a" ]
+    [[ "$output" == *"Deleted 1 worktree"* ]]
+}
+
+@test "gwt-clean --force: removes stale+clean worktree" {
+    create_worktree "$TEST_REPO" feat/old
+    set_path_age_days "$TEST_REPO/worktrees/feat/old" 200
+    cd "$TEST_REPO"
+    run gwt-clean --force
+    [ "$status" -eq 0 ]
+    [ ! -d "$TEST_REPO/worktrees/feat/old" ]
+}
+
+@test "gwt-clean --force: deletes local branch if merged" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run gwt-clean --force
+    [ "$status" -eq 0 ]
+    run git -C "$TEST_REPO" show-ref --verify --quiet refs/heads/feat/a
+    [ "$status" -ne 0 ]  # branch is gone
+}
+
+@test "gwt-clean --force: keeps local branch for stale-but-unmerged" {
+    create_worktree "$TEST_REPO" feat/old
+    set_path_age_days "$TEST_REPO/worktrees/feat/old" 200
+    cd "$TEST_REPO"
+    run gwt-clean --force
+    [ "$status" -eq 0 ]
+    run git -C "$TEST_REPO" show-ref --verify --quiet refs/heads/feat/old
+    [ "$status" -eq 0 ]  # branch still exists
+}
+
+@test "gwt-clean --force: skips dirty worktrees" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    dirty_worktree "$TEST_REPO/worktrees/feat/a"
+    cd "$TEST_REPO"
+    run gwt-clean --force
+    [ "$status" -eq 0 ]
+    [ -d "$TEST_REPO/worktrees/feat/a" ]
+}
+
+@test "gwt-clean --force: does not delete current worktree" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    cd "$TEST_REPO/worktrees/feat/a"
+    run gwt-clean --force
+    [ "$status" -eq 0 ]
+    [ -d "$TEST_REPO/worktrees/feat/a" ]
+}
