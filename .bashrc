@@ -242,6 +242,24 @@ _gwt_clean_age_days() {
     [ -z "$newest" ] && { echo 9999; return; }
     echo $(( ($(date +%s) - newest) / 86400 ))
 }
+
+_gwt_clean_dir_size_kb() {
+    # Echoes size of a directory in KB (integer).
+    du -sk "$1" 2>/dev/null | awk '{print $1}'
+}
+
+_gwt_clean_format_kb() {
+    # Usage: _gwt_clean_format_kb <kb>
+    # Echoes human-readable size (K/M/G).
+    local kb="$1"
+    if [ "$kb" -lt 1024 ]; then
+        echo "${kb}K"
+    elif [ "$kb" -lt $((1024 * 1024)) ]; then
+        echo "$((kb / 1024))M"
+    else
+        echo "$((kb / 1024 / 1024))G"
+    fi
+}
 # --- gwt-clean: END ---
 
 export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"

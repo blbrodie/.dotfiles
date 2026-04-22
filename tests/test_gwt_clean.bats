@@ -149,3 +149,27 @@ teardown() {
     [ "$status" -eq 0 ]
     [ "$output" -ge 44 ] && [ "$output" -le 46 ]
 }
+
+@test "_gwt_clean_dir_size_kb: reports size in KB" {
+    mkdir -p "$TEST_REPO/bigdir"
+    dd if=/dev/zero of="$TEST_REPO/bigdir/blob" bs=1024 count=100 >/dev/null 2>&1
+    run _gwt_clean_dir_size_kb "$TEST_REPO/bigdir"
+    [ "$status" -eq 0 ]
+    [ "$output" -ge 100 ]
+    [ "$output" -lt 200 ]
+}
+
+@test "_gwt_clean_format_kb: KB < 1024 shows K" {
+    run _gwt_clean_format_kb 512
+    [ "$output" = "512K" ]
+}
+
+@test "_gwt_clean_format_kb: KB >= 1024 shows M" {
+    run _gwt_clean_format_kb 2048
+    [ "$output" = "2M" ]
+}
+
+@test "_gwt_clean_format_kb: KB >= 1024*1024 shows G" {
+    run _gwt_clean_format_kb $((3 * 1024 * 1024))
+    [ "$output" = "3G" ]
+}
