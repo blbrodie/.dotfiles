@@ -173,3 +173,84 @@ teardown() {
     run _gwt_clean_format_kb $((3 * 1024 * 1024))
     [ "$output" = "3G" ]
 }
+
+@test "gwt-clean dry-run: marks merged+clean as DELETE" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run gwt-clean
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DELETE"* ]]
+    [[ "$output" == *"feat/a"* ]]
+    [[ "$output" == *"merged"* ]]
+    [[ "$output" == *"dry run"* ]]
+}
+
+@test "gwt-clean dry-run: marks stale+clean as DELETE" {
+    create_worktree "$TEST_REPO" feat/old
+    set_path_age_days "$TEST_REPO/worktrees/feat/old" 200
+    cd "$TEST_REPO"
+    run gwt-clean
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DELETE"* ]]
+    [[ "$output" == *"feat/old"* ]]
+    [[ "$output" == *"stale"* ]]
+}
+
+@test "gwt-clean dry-run: marks dirty as KEEP: dirty" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    dirty_worktree "$TEST_REPO/worktrees/feat/a"
+    cd "$TEST_REPO"
+    run gwt-clean
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"KEEP: dirty"* ]]
+    [[ "$output" == *"uncommitted"* ]]
+}
+
+@test "gwt-clean dry-run: marks recent unmerged as KEEP: active" {
+    create_worktree "$TEST_REPO" feat/wip
+    cd "$TEST_REPO"
+    run gwt-clean
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"KEEP: active"* ]]
+    [[ "$output" == *"feat/wip"* ]]
+}
+
+@test "gwt-clean dry-run: marks current worktree as KEEP: current" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    cd "$TEST_REPO/worktrees/feat/a"
+    run gwt-clean
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"KEEP: current"* ]]
+    [[ "$output" == *"feat/a"* ]]
+}
+
+@test "gwt-clean dry-run: respects --stale-days" {
+    create_worktree "$TEST_REPO" feat/month-old
+    set_path_age_days "$TEST_REPO/worktrees/feat/month-old" 30
+    cd "$TEST_REPO"
+    run gwt-clean --stale-days 14
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DELETE"* ]]
+    [[ "$output" == *"feat/month-old"* ]]
+}
+
+@test "gwt-clean dry-run: does NOT delete without --force" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run gwt-clean
+    [ "$status" -eq 0 ]
+    [ -d "$TEST_REPO/worktrees/feat/a" ]
+}
+
+@test "gwt-clean dry-run: prints summary line" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run gwt-clean
+    [[ "$output" == *"1 will be deleted"* ]]
+    [[ "$output" == *"Reclaimable"* ]]
+}

@@ -260,6 +260,133 @@ _gwt_clean_format_kb() {
         echo "$((kb / 1024 / 1024))G"
     fi
 }
+
+gwt-clean() {
+    local force=0
+    local stale_days=120
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --force|-f) force=1; shift ;;
+            --stale-days) stale_days="$2"; shift 2 ;;
+            --help|-h)
+                echo "Usage: gwt-clean [--force] [--stale-days N]"
+                echo ""
+                echo "  --force          Actually delete (default: dry run)"
+                echo "  --stale-days N   Override 120-day stale threshold"
+                return 0
+                ;;
+            *)
+                echo "Unknown option: $1" >&2
+                echo "Usage: gwt-clean [--force] [--stale-days N]" >&2
+                return 2
+                ;;
+        esac
+    done
+
+    local git_common_dir
+    git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+    if [ -z "$git_common_dir" ]; then
+        echo "Error: Not in a git repository" >&2
+        return 1
+    fi
+    local git_root
+    git_root=$(cd "$(dirname "$git_common_dir")" && pwd -P)
+    local worktrees_dir="$git_root/worktrees"
+
+    if [ ! -d "$worktrees_dir" ]; then
+        echo "No worktrees to clean"
+        return 0
+    fi
+
+    local current_wt
+    current_wt=$(git rev-parse --show-toplevel 2>/dev/null)
+
+    echo "Fetching and pruning remote refs..."
+    (cd "$git_root" && git fetch --prune 2>/dev/null) || \
+        echo "  (fetch failed; continuing with local info)"
+
+    local default_branch
+    default_branch=$(cd "$git_root" && _gwt_clean_default_branch)
+    if [ -z "$default_branch" ]; then
+        echo "  (no 'main' or 'master' branch locally; using [gone] check only)"
+    fi
+
+    local -a to_delete_paths=()
+    local -a to_delete_branches=()
+    local -a to_delete_merged=()
+    local total_count=0 delete_count=0 reclaim_kb=0
+
+    while IFS= read -r wt_path; do
+        [ -z "$wt_path" ] && continue
+        total_count=$((total_count + 1))
+        local size_kb
+        size_kb=$(_gwt_clean_dir_size_kb "$wt_path")
+        local rel_name="${wt_path#$worktrees_dir/}"
+        local branch
+        branch=$(git -C "$wt_path" symbolic-ref --short HEAD 2>/dev/null)
+
+        if [ "$wt_path" = "$current_wt" ]; then
+            printf "%-14s %-32s %s\n" "KEEP: current" "$rel_name" "you are here"
+            continue
+        fi
+
+        local clean_reason
+        clean_reason=$(_gwt_clean_is_clean "$wt_path")
+        local clean_rc=$?
+        if [ "$clean_rc" -ne 0 ]; then
+            printf "%-14s %-32s %s\n" "KEEP: dirty" "$rel_name" "$clean_reason"
+            continue
+        fi
+
+        local merged=0 stale=0
+        (cd "$git_root" && _gwt_clean_is_merged "$branch" "$default_branch") && merged=1
+        _gwt_clean_is_stale "$wt_path" "$stale_days" && stale=1
+
+        local age; age=$(_gwt_clean_age_days "$wt_path")
+        if [ "$merged" -eq 1 ] || [ "$stale" -eq 1 ]; then
+            local reason=""
+            [ "$merged" -eq 1 ] && reason="merged"
+            [ "$stale" -eq 1 ] && reason="${reason:+${reason}, }stale (${age}d)"
+            reason="${reason}, clean"
+            printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "$reason"
+            to_delete_paths+=("$wt_path")
+            to_delete_branches+=("$branch")
+            to_delete_merged+=("$merged")
+            delete_count=$((delete_count + 1))
+            reclaim_kb=$((reclaim_kb + size_kb))
+        else
+            printf "%-14s %-32s %s\n" "KEEP: active" "$rel_name" "clean, ${age}d old, unmerged"
+        fi
+    done < <(
+        (cd "$git_root" && git worktree list --porcelain 2>/dev/null) |
+        awk -v prefix="$worktrees_dir/" '
+            /^worktree / {
+                path = substr($0, 10)
+                if (substr(path, 1, length(prefix)) == prefix) print path
+            }
+        '
+    )
+
+    echo ""
+    if [ "$delete_count" -eq 0 ]; then
+        echo "$total_count worktrees: 0 will be deleted, $total_count will be kept"
+        echo "Nothing to do."
+        return 0
+    fi
+    local reclaim_human; reclaim_human=$(_gwt_clean_format_kb "$reclaim_kb")
+    echo "$total_count worktrees: $delete_count will be deleted, $((total_count - delete_count)) will be kept"
+    echo "Reclaimable: ~${reclaim_human}"
+
+    if [ "$force" -eq 0 ]; then
+        echo ""
+        echo "(dry run — pass --force to delete)"
+        return 0
+    fi
+
+    # --force path filled in Task 8
+    return 0
+}
 # --- gwt-clean: END ---
 
 export MYPY="mypy --skip-cache-mtime-checks --exclude worktrees"
