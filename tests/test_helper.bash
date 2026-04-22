@@ -36,11 +36,16 @@ cleanup_test_repo() {
     [ -n "$dir" ] && rm -rf "$dir" "${dir}.remote"
 }
 
-# Create a worktree for a new branch, push it to origin by default.
+# Create a worktree for a new branch, add an initial commit, and push to origin by default.
 # Usage: create_worktree <repo> <branch> [--no-push]
 create_worktree() {
     local repo="$1" branch="$2" push_flag="${3:-push}"
     git -C "$repo" worktree add -q "$repo/worktrees/$branch" -b "$branch" >/dev/null
+    # Add an initial commit so the branch has work of its own (needed for
+    # merge-detection logic to distinguish "merged" from "just branched").
+    echo "# $branch" > "$repo/worktrees/$branch/.branch"
+    git -C "$repo/worktrees/$branch" add .branch
+    git -C "$repo/worktrees/$branch" commit -qm "init $branch"
     if [ "$push_flag" = "push" ]; then
         git -C "$repo/worktrees/$branch" push -q -u origin "$branch"
     fi

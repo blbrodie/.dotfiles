@@ -69,3 +69,34 @@ teardown() {
     [ "$status" -eq 1 ]
     [[ "$output" == *"unpushed"* ]]
 }
+
+@test "_gwt_clean_is_merged: branch merged into main => merged" {
+    create_worktree "$TEST_REPO" feat/a
+    merge_branch_to_main "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run _gwt_clean_is_merged feat/a main
+    [ "$status" -eq 0 ]
+}
+
+@test "_gwt_clean_is_merged: unmerged branch with live remote => not merged" {
+    create_worktree "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run _gwt_clean_is_merged feat/a main
+    [ "$status" -eq 1 ]
+}
+
+@test "_gwt_clean_is_merged: upstream [gone] => merged" {
+    create_worktree "$TEST_REPO" feat/a
+    delete_remote_branch "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run _gwt_clean_is_merged feat/a main
+    [ "$status" -eq 0 ]
+}
+
+@test "_gwt_clean_is_merged: empty default_branch still detects [gone]" {
+    create_worktree "$TEST_REPO" feat/a
+    delete_remote_branch "$TEST_REPO" feat/a
+    cd "$TEST_REPO"
+    run _gwt_clean_is_merged feat/a ""
+    [ "$status" -eq 0 ]
+}

@@ -182,6 +182,21 @@ _gwt_clean_default_branch() {
         echo "master"
     fi
 }
+_gwt_clean_is_merged() {
+    # Usage: _gwt_clean_is_merged <branch> <default_branch>
+    # Returns 0 if branch is reachable from default_branch OR has [gone] upstream.
+    # Caller is responsible for having run `git fetch --prune` beforehand.
+    local branch="$1" default_branch="$2"
+    if [ -n "$default_branch" ]; then
+        if git branch --merged "$default_branch" 2>/dev/null | \
+                sed 's/^[ *+]*//' | grep -qxF "$branch"; then
+            return 0
+        fi
+    fi
+    local upstream_status
+    upstream_status=$(git for-each-ref --format='%(upstream:track)' "refs/heads/$branch" 2>/dev/null)
+    [ "$upstream_status" = "[gone]" ]
+}
 _gwt_clean_is_clean() {
     # Usage: _gwt_clean_is_clean <worktree-path>
     # Returns 0 if clean. Returns 1 and echoes reason if not.
