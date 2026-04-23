@@ -366,7 +366,13 @@ gwt-clean() {
 
     local -a to_delete_paths=()
     local -a to_delete_branches=()
-    local -a to_delete_merged=()
+    # Parallel array of branch-cleanup actions per delete candidate:
+    #   "none"  — don't touch the local branch (stale/unmerged case)
+    #   "safe"  — `git branch -d`; keep branch (and warn) if git refuses
+    #   "force" — `git branch -D`; we have strong external evidence
+    #             (merged PR confirmed via gh) that the work is in master,
+    #             typically via squash-merge where -d would refuse.
+    local -a to_delete_branch_action=()
     local total_count=0 delete_count=0
 
     while IFS= read -r wt_path; do
@@ -395,7 +401,7 @@ gwt-clean() {
                 printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "merged PR (no upstream)"
                 to_delete_paths+=("$wt_path")
                 to_delete_branches+=("$branch")
-                to_delete_merged+=("1")
+                to_delete_branch_action+=("force")
                 delete_count=$((delete_count + 1))
                 continue
             fi
@@ -409,7 +415,7 @@ gwt-clean() {
             printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "merged, clean"
             to_delete_paths+=("$wt_path")
             to_delete_branches+=("$branch")
-            to_delete_merged+=("1")
+            to_delete_branch_action+=("safe")
             delete_count=$((delete_count + 1))
             continue
         fi
@@ -419,7 +425,7 @@ gwt-clean() {
             printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "stale (${age}d), clean"
             to_delete_paths+=("$wt_path")
             to_delete_branches+=("$branch")
-            to_delete_merged+=("0")
+            to_delete_branch_action+=("none")
             delete_count=$((delete_count + 1))
             continue
         fi
@@ -455,12 +461,21 @@ gwt-clean() {
     while [ "$i" -lt "${#to_delete_paths[@]}" ]; do
         local wt="${to_delete_paths[$i]}"
         local br="${to_delete_branches[$i]}"
-        local mg="${to_delete_merged[$i]}"
+        local action="${to_delete_branch_action[$i]}"
         if (cd "$git_root" && git worktree remove "$wt" 2>/dev/null); then
             deleted=$((deleted + 1))
-            if [ "$mg" = "1" ] && [ -n "$br" ]; then
-                (cd "$git_root" && git branch -d "$br" 2>/dev/null) || \
-                    echo "  (kept branch $br: not fully merged locally)"
+            if [ -n "$br" ]; then
+                case "$action" in
+                    force)
+                        (cd "$git_root" && git branch -D "$br" >/dev/null 2>&1) || \
+                            echo "  (failed to delete branch $br)"
+                        ;;
+                    safe)
+                        (cd "$git_root" && git branch -d "$br" 2>/dev/null) || \
+                            echo "  (kept branch $br: not fully merged locally)"
+                        ;;
+                    none) : ;;
+                esac
             fi
         else
             echo "  Warning: failed to remove $wt; skipping"

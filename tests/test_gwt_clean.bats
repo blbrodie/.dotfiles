@@ -408,6 +408,23 @@ _teardown_gh_mock() {
     _teardown_gh_mock
 }
 
+@test "gwt-clean --force --check-merged-prs: force-deletes branch when PR was merged (squash case)" {
+    # Simulate a squash-merged PR: the local branch has commits that
+    # differ from master (no-push keeps them local-only, which is the
+    # same shape as a branch whose remote was pruned after squash).
+    # Plain `git branch -d` would refuse; `-D` is correct here because
+    # gh has confirmed the PR is merged.
+    _setup_gh_mock "feat/a"
+    create_worktree "$TEST_REPO" feat/a --no-push
+    cd "$TEST_REPO"
+    run gwt-clean --force --check-merged-prs
+    [ "$status" -eq 0 ]
+    [ ! -d "$TEST_REPO/worktrees/feat/a" ]
+    run git -C "$TEST_REPO" show-ref --verify --quiet refs/heads/feat/a
+    [ "$status" -ne 0 ]  # branch is gone
+    _teardown_gh_mock
+}
+
 @test "gwt-clean --check-merged-prs: calls 'gh pr list' only once (batched)" {
     _setup_gh_mock "feat/a"
     create_worktree "$TEST_REPO" feat/a --no-push
