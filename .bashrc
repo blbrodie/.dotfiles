@@ -259,32 +259,32 @@ _gwt_clean_age_days() {
     echo $(( ($(date +%s) - newest) / 86400 ))
 }
 
-_gwt_clean_dir_size_kb() {
-    # Echoes size of a directory in KB (integer).
-    du -sk "$1" 2>/dev/null | awk '{print $1}'
+# Global set by _gwt_clean_load_merged_prs; consumed by _gwt_clean_pr_is_merged.
+# Format: space-padded list, e.g. " feat/a feat/b ". The surrounding spaces make
+# membership a single pattern match ("*\ $branch\ *") with no false positives
+# from branches that are substrings of one another.
+_gwt_clean_merged_prs=""
+
+_gwt_clean_load_merged_prs() {
+    # One gh round-trip to fetch every merged PR's head ref. Echoes a
+    # space-padded string (leading/trailing space) so a caller can stash
+    # it in $_gwt_clean_merged_prs and do membership tests with a single
+    # pattern match. Replaces N serial `gh pr list --head X` calls with a
+    # single call — on repos with many no-upstream worktrees this is the
+    # dominant speedup.
+    local list
+    list=$(gh pr list --state merged --json headRefName \
+            --jq '.[].headRefName' --limit 1000 2>/dev/null) || return 1
+    echo " $(echo "$list" | tr '\n' ' ')"
 }
 
 _gwt_clean_pr_is_merged() {
     # Usage: _gwt_clean_pr_is_merged <branch>
-    # Returns 0 if a merged PR exists with this branch as head ref.
-    # Caller must be in a git repo with a GitHub origin; this does not cd.
-    local branch="$1"
-    local result
-    result=$(gh pr list --state merged --head "$branch" --json number --limit 1 2>/dev/null)
-    [ -n "$result" ] && [ "$result" != "[]" ]
-}
-
-_gwt_clean_format_kb() {
-    # Usage: _gwt_clean_format_kb <kb>
-    # Echoes human-readable size (K/M/G).
-    local kb="$1"
-    if [ "$kb" -lt 1024 ]; then
-        echo "${kb}K"
-    elif [ "$kb" -lt $((1024 * 1024)) ]; then
-        echo "$((kb / 1024))M"
-    else
-        echo "$((kb / 1024 / 1024))G"
-    fi
+    # Pure-bash lookup against the preloaded _gwt_clean_merged_prs set.
+    case "$_gwt_clean_merged_prs" in
+        *" $1 "*) return 0 ;;
+        *) return 1 ;;
+    esac
 }
 
 gwt-clean() {
@@ -344,6 +344,7 @@ gwt-clean() {
         echo "  (no 'main' or 'master' branch locally; using [gone] check only)"
     fi
 
+    _gwt_clean_merged_prs=""
     if [ "$check_merged_prs" -eq 1 ]; then
         if ! command -v gh >/dev/null 2>&1; then
             echo "  (--check-merged-prs: 'gh' not found; skipping PR check)"
@@ -352,14 +353,21 @@ gwt-clean() {
             echo "  (--check-merged-prs: 'gh' not authenticated; skipping PR check)"
             check_merged_prs=0
         else
-            echo "  (--check-merged-prs: will query GitHub for 'no upstream' branches)"
+            echo "  (--check-merged-prs: fetching merged PR list from GitHub...)"
+            local loaded
+            if loaded=$(cd "$git_root" && _gwt_clean_load_merged_prs); then
+                _gwt_clean_merged_prs="$loaded"
+            else
+                echo "  (--check-merged-prs: gh call failed; skipping PR check)"
+                check_merged_prs=0
+            fi
         fi
     fi
 
     local -a to_delete_paths=()
     local -a to_delete_branches=()
     local -a to_delete_merged=()
-    local total_count=0 delete_count=0 reclaim_kb=0
+    local total_count=0 delete_count=0
 
     while IFS= read -r wt_path; do
         [ -z "$wt_path" ] && continue
@@ -383,14 +391,12 @@ gwt-clean() {
             if [ "$check_merged_prs" -eq 1 ] && \
                     [ "$clean_reason" = "no upstream" ] && \
                     [ -n "$branch" ] && \
-                    (cd "$git_root" && _gwt_clean_pr_is_merged "$branch"); then
-                local size_kb; size_kb=$(_gwt_clean_dir_size_kb "$wt_path")
+                    _gwt_clean_pr_is_merged "$branch"; then
                 printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "merged PR (no upstream)"
                 to_delete_paths+=("$wt_path")
                 to_delete_branches+=("$branch")
                 to_delete_merged+=("1")
                 delete_count=$((delete_count + 1))
-                reclaim_kb=$((reclaim_kb + size_kb))
                 continue
             fi
             printf "%-14s %-32s %s\n" "KEEP: dirty" "$rel_name" "$clean_reason"
@@ -400,25 +406,21 @@ gwt-clean() {
         # Merged check is cheap (reads refs). If merged, we're deleting
         # regardless of age, so skip the staleness check entirely.
         if (cd "$git_root" && _gwt_clean_is_merged "$branch" "$default_branch"); then
-            local size_kb; size_kb=$(_gwt_clean_dir_size_kb "$wt_path")
             printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "merged, clean"
             to_delete_paths+=("$wt_path")
             to_delete_branches+=("$branch")
             to_delete_merged+=("1")
             delete_count=$((delete_count + 1))
-            reclaim_kb=$((reclaim_kb + size_kb))
             continue
         fi
 
         local age; age=$(_gwt_clean_age_days "$wt_path")
         if _gwt_clean_is_stale "$wt_path" "$stale_days"; then
-            local size_kb; size_kb=$(_gwt_clean_dir_size_kb "$wt_path")
             printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "stale (${age}d), clean"
             to_delete_paths+=("$wt_path")
             to_delete_branches+=("$branch")
             to_delete_merged+=("0")
             delete_count=$((delete_count + 1))
-            reclaim_kb=$((reclaim_kb + size_kb))
             continue
         fi
 
@@ -439,9 +441,7 @@ gwt-clean() {
         echo "Nothing to do."
         return 0
     fi
-    local reclaim_human; reclaim_human=$(_gwt_clean_format_kb "$reclaim_kb")
     echo "$total_count worktrees: $delete_count will be deleted, $((total_count - delete_count)) will be kept"
-    echo "Reclaimable: ~${reclaim_human}"
 
     if [ "$force" -eq 0 ]; then
         echo ""
@@ -451,15 +451,13 @@ gwt-clean() {
 
     echo ""
     echo "Deleting..."
-    local deleted=0 freed_kb=0 i=0
+    local deleted=0 i=0
     while [ "$i" -lt "${#to_delete_paths[@]}" ]; do
         local wt="${to_delete_paths[$i]}"
         local br="${to_delete_branches[$i]}"
         local mg="${to_delete_merged[$i]}"
-        local sz; sz=$(_gwt_clean_dir_size_kb "$wt")
         if (cd "$git_root" && git worktree remove "$wt" 2>/dev/null); then
             deleted=$((deleted + 1))
-            freed_kb=$((freed_kb + sz))
             if [ "$mg" = "1" ] && [ -n "$br" ]; then
                 (cd "$git_root" && git branch -d "$br" 2>/dev/null) || \
                     echo "  (kept branch $br: not fully merged locally)"
@@ -471,8 +469,7 @@ gwt-clean() {
     done
     (cd "$git_root" && git worktree prune 2>/dev/null)
     echo ""
-    local freed_human; freed_human=$(_gwt_clean_format_kb "$freed_kb")
-    echo "Deleted $deleted worktrees, freed ~${freed_human}"
+    echo "Deleted $deleted worktrees"
 }
 # --- gwt-clean: END ---
 

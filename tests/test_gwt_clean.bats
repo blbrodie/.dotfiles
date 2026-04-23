@@ -151,30 +151,6 @@ teardown() {
     [ "$output" -ge 44 ] && [ "$output" -le 46 ]
 }
 
-@test "_gwt_clean_dir_size_kb: reports size in KB" {
-    mkdir -p "$TEST_REPO/bigdir"
-    dd if=/dev/zero of="$TEST_REPO/bigdir/blob" bs=1024 count=100 >/dev/null 2>&1
-    run _gwt_clean_dir_size_kb "$TEST_REPO/bigdir"
-    [ "$status" -eq 0 ]
-    [ "$output" -ge 100 ]
-    [ "$output" -lt 200 ]
-}
-
-@test "_gwt_clean_format_kb: KB < 1024 shows K" {
-    run _gwt_clean_format_kb 512
-    [ "$output" = "512K" ]
-}
-
-@test "_gwt_clean_format_kb: KB >= 1024 shows M" {
-    run _gwt_clean_format_kb 2048
-    [ "$output" = "2M" ]
-}
-
-@test "_gwt_clean_format_kb: KB >= 1024*1024 shows G" {
-    run _gwt_clean_format_kb $((3 * 1024 * 1024))
-    [ "$output" = "3G" ]
-}
-
 @test "gwt-clean dry-run: marks merged+clean as DELETE" {
     create_worktree "$TEST_REPO" feat/a
     merge_branch_to_main "$TEST_REPO" feat/a
@@ -253,7 +229,6 @@ teardown() {
     cd "$TEST_REPO"
     run gwt-clean
     [[ "$output" == *"1 will be deleted"* ]]
-    [[ "$output" == *"Reclaimable"* ]]
 }
 
 @test "gwt-clean --force: removes merged+clean worktree" {
@@ -351,28 +326,25 @@ teardown() {
 
 # --- --check-merged-prs ---
 # These tests mock `gh` by writing a stub into a temp dir and prepending
-# it to PATH. The stub inspects its args and returns a configured JSON
-# payload for gh pr list, plus exit 0 for gh auth status.
+# it to PATH. The stub returns a pre-configured list of merged PR head
+# refs (one per line), records each 'gh pr list' invocation to a file so
+# tests can assert batching behavior, and exits 0 for `gh auth status`.
 
 _setup_gh_mock() {
-    # Usage: _setup_gh_mock <merged_branch>
-    # Exports GH_MOCK_DIR; creates a 'gh' stub that reports a merged PR
-    # for $1 and an empty list for every other --head value.
+    # Usage: _setup_gh_mock [merged_branch...]
+    # Any branches passed are echoed by `gh pr list ...`, simulating the
+    # `--jq '.[].headRefName'` output of a real call.
     GH_MOCK_DIR=$(mktemp -d)
+    : > "$GH_MOCK_DIR/calls"
+    printf '%s\n' "$@" > "$GH_MOCK_DIR/merged_branches"
     cat > "$GH_MOCK_DIR/gh" <<MOCKEOF
 #!/bin/bash
 if [ "\$1" = "auth" ] && [ "\$2" = "status" ]; then
     exit 0
 fi
 if [ "\$1" = "pr" ] && [ "\$2" = "list" ]; then
-    for arg in "\$@"; do
-        if [ "\$prev" = "--head" ] && [ "\$arg" = "$1" ]; then
-            echo '[{"number":42}]'
-            exit 0
-        fi
-        prev="\$arg"
-    done
-    echo '[]'
+    echo "list" >> "$GH_MOCK_DIR/calls"
+    cat "$GH_MOCK_DIR/merged_branches"
     exit 0
 fi
 exit 1
@@ -385,17 +357,30 @@ _teardown_gh_mock() {
     rm -rf "$GH_MOCK_DIR"
 }
 
-@test "_gwt_clean_pr_is_merged: returns 0 when gh reports a merged PR" {
-    _setup_gh_mock "feat/a"
+@test "_gwt_clean_pr_is_merged: returns 0 when branch is in loaded list" {
+    _gwt_clean_merged_prs=" feat/a feat/b "
     run _gwt_clean_pr_is_merged feat/a
     [ "$status" -eq 0 ]
-    _teardown_gh_mock
 }
 
-@test "_gwt_clean_pr_is_merged: returns 1 when gh reports no PRs" {
-    _setup_gh_mock "feat/a"
+@test "_gwt_clean_pr_is_merged: returns 1 when branch is not in loaded list" {
+    _gwt_clean_merged_prs=" feat/a feat/b "
     run _gwt_clean_pr_is_merged other/branch
     [ "$status" -eq 1 ]
+}
+
+@test "_gwt_clean_pr_is_merged: does not false-match on substrings" {
+    _gwt_clean_merged_prs=" feat/a "
+    run _gwt_clean_pr_is_merged feat/abc
+    [ "$status" -eq 1 ]
+}
+
+@test "_gwt_clean_load_merged_prs: echoes space-padded list from gh" {
+    _setup_gh_mock "feat/a" "feat/b"
+    run _gwt_clean_load_merged_prs
+    [ "$status" -eq 0 ]
+    [[ "$output" == *" feat/a "* ]]
+    [[ "$output" == *" feat/b "* ]]
     _teardown_gh_mock
 }
 
@@ -420,6 +405,20 @@ _teardown_gh_mock() {
     [[ "$output" == *"KEEP: dirty"* ]]
     [[ "$output" == *"feat/a"* ]]
     [[ "$output" == *"no upstream"* ]]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --check-merged-prs: calls 'gh pr list' only once (batched)" {
+    _setup_gh_mock "feat/a"
+    create_worktree "$TEST_REPO" feat/a --no-push
+    create_worktree "$TEST_REPO" feat/b --no-push
+    create_worktree "$TEST_REPO" feat/c --no-push
+    cd "$TEST_REPO"
+    run gwt-clean --check-merged-prs
+    [ "$status" -eq 0 ]
+    local count
+    count=$(grep -c '^list' "$GH_MOCK_DIR/calls" 2>/dev/null)
+    [ "$count" -eq 1 ]
     _teardown_gh_mock
 }
 
