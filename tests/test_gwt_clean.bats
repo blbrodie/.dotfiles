@@ -101,15 +101,15 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
-@test "_gwt_clean_newest_mtime: returns newest file mtime in tree" {
+@test "_gwt_clean_newest_mtime: reflects recent git activity" {
     create_worktree "$TEST_REPO" feat/a
     local wt="$TEST_REPO/worktrees/feat/a"
     set_path_age_days "$wt" 200
-    # Now touch one file to "now"
-    touch "$wt/README.md" 2>/dev/null || touch "$wt/.branch"
+    # Simulate recent git activity: touch HEAD in the gitdir.
+    local gitdir; gitdir=$(git -C "$wt" rev-parse --git-dir)
+    touch "$gitdir/HEAD"
     run _gwt_clean_newest_mtime "$wt"
     [ "$status" -eq 0 ]
-    # Should be within 60s of now
     local now=$(date +%s)
     [ "$((now - output))" -lt 60 ]
 }
@@ -122,11 +122,12 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
-@test "_gwt_clean_is_stale: one recent file => not stale" {
+@test "_gwt_clean_is_stale: recent git activity => not stale" {
     create_worktree "$TEST_REPO" feat/a
     local wt="$TEST_REPO/worktrees/feat/a"
     set_path_age_days "$wt" 200
-    touch "$wt/.branch"
+    local gitdir; gitdir=$(git -C "$wt" rev-parse --git-dir)
+    touch "$gitdir/HEAD"
     run _gwt_clean_is_stale "$wt" 120
     [ "$status" -eq 1 ]
 }

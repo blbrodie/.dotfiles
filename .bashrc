@@ -218,9 +218,25 @@ _gwt_clean_is_clean() {
     return 0
 }
 _gwt_clean_newest_mtime() {
-    # Echoes unix timestamp of newest file anywhere in the worktree tree.
+    # Echoes a unix timestamp reflecting recent ref-changing activity on
+    # this worktree. Reads HEAD and logs/HEAD (the reflog) in the gitdir
+    # rather than scanning every file — for a clean worktree (the only
+    # case staleness matters), ref-changing operations (checkout, commit,
+    # reset, pull, merge, rebase) all update at least one of these.
+    # .git/index is intentionally excluded because `git status` refreshes
+    # its stat cache on every invocation, which would make any worktree
+    # we've just classified look "active".
     local wt="$1"
-    find "$wt" -type f -exec stat -f '%m' {} + 2>/dev/null | sort -n | tail -1
+    local gitdir
+    gitdir=$(git -C "$wt" rev-parse --git-dir 2>/dev/null) || return
+    [ "${gitdir:0:1}" != "/" ] && gitdir="$wt/$gitdir"
+    local newest=0 f m
+    for f in "$gitdir/HEAD" "$gitdir/logs/HEAD"; do
+        [ -f "$f" ] || continue
+        m=$(stat -f '%m' "$f" 2>/dev/null) || continue
+        [ "$m" -gt "$newest" ] && newest="$m"
+    done
+    [ "$newest" -gt 0 ] && echo "$newest"
 }
 
 _gwt_clean_is_stale() {
@@ -320,8 +336,6 @@ gwt-clean() {
     while IFS= read -r wt_path; do
         [ -z "$wt_path" ] && continue
         total_count=$((total_count + 1))
-        local size_kb
-        size_kb=$(_gwt_clean_dir_size_kb "$wt_path")
         local rel_name="${wt_path#$worktrees_dir/}"
         local branch
         branch=$(git -C "$wt_path" symbolic-ref --short HEAD 2>/dev/null)
@@ -339,25 +353,32 @@ gwt-clean() {
             continue
         fi
 
-        local merged=0 stale=0
-        (cd "$git_root" && _gwt_clean_is_merged "$branch" "$default_branch") && merged=1
-        _gwt_clean_is_stale "$wt_path" "$stale_days" && stale=1
-
-        local age; age=$(_gwt_clean_age_days "$wt_path")
-        if [ "$merged" -eq 1 ] || [ "$stale" -eq 1 ]; then
-            local reason=""
-            [ "$merged" -eq 1 ] && reason="merged"
-            [ "$stale" -eq 1 ] && reason="${reason:+${reason}, }stale (${age}d)"
-            reason="${reason}, clean"
-            printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "$reason"
+        # Merged check is cheap (reads refs). If merged, we're deleting
+        # regardless of age, so skip the staleness check entirely.
+        if (cd "$git_root" && _gwt_clean_is_merged "$branch" "$default_branch"); then
+            local size_kb; size_kb=$(_gwt_clean_dir_size_kb "$wt_path")
+            printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "merged, clean"
             to_delete_paths+=("$wt_path")
             to_delete_branches+=("$branch")
-            to_delete_merged+=("$merged")
+            to_delete_merged+=("1")
             delete_count=$((delete_count + 1))
             reclaim_kb=$((reclaim_kb + size_kb))
-        else
-            printf "%-14s %-32s %s\n" "KEEP: active" "$rel_name" "clean, ${age}d old, unmerged"
+            continue
         fi
+
+        local age; age=$(_gwt_clean_age_days "$wt_path")
+        if _gwt_clean_is_stale "$wt_path" "$stale_days"; then
+            local size_kb; size_kb=$(_gwt_clean_dir_size_kb "$wt_path")
+            printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "stale (${age}d), clean"
+            to_delete_paths+=("$wt_path")
+            to_delete_branches+=("$branch")
+            to_delete_merged+=("0")
+            delete_count=$((delete_count + 1))
+            reclaim_kb=$((reclaim_kb + size_kb))
+            continue
+        fi
+
+        printf "%-14s %-32s %s\n" "KEEP: active" "$rel_name" "clean, ${age}d old, unmerged"
     done < <(
         (cd "$git_root" && git worktree list --porcelain 2>/dev/null) |
         awk -v prefix="$worktrees_dir/" '

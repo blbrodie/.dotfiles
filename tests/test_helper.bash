@@ -67,12 +67,19 @@ delete_remote_branch() {
     git -C "$repo" fetch -q --prune origin
 }
 
-# Set every file under <path> to an mtime of N days ago.
+# Set every file under <path> to an mtime of N days ago. If <path> is a
+# git worktree, also ages files in its gitdir (for secondary worktrees
+# this lives outside the worktree, at <main>/.git/worktrees/<name>/).
+# gwt-clean's staleness check reads gitdir metadata, so aging must hit it.
 set_path_age_days() {
     local path="$1" days="$2"
     local ts
     ts=$(date -v-"${days}"d +%Y%m%d%H%M.%S)
     find "$path" -exec touch -t "$ts" {} +
+    local gitdir
+    gitdir=$(git -C "$path" rev-parse --git-dir 2>/dev/null) || return 0
+    [ "${gitdir:0:1}" != "/" ] && gitdir="$path/$gitdir"
+    find "$gitdir" -exec touch -t "$ts" {} + 2>/dev/null
 }
 
 # Write a tracked-but-uncommitted edit into a worktree.
