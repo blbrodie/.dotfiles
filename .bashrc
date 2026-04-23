@@ -264,6 +264,16 @@ _gwt_clean_dir_size_kb() {
     du -sk "$1" 2>/dev/null | awk '{print $1}'
 }
 
+_gwt_clean_pr_is_merged() {
+    # Usage: _gwt_clean_pr_is_merged <branch>
+    # Returns 0 if a merged PR exists with this branch as head ref.
+    # Caller must be in a git repo with a GitHub origin; this does not cd.
+    local branch="$1"
+    local result
+    result=$(gh pr list --state merged --head "$branch" --json number --limit 1 2>/dev/null)
+    [ -n "$result" ] && [ "$result" != "[]" ]
+}
+
 _gwt_clean_format_kb() {
     # Usage: _gwt_clean_format_kb <kb>
     # Echoes human-readable size (K/M/G).
@@ -280,21 +290,27 @@ _gwt_clean_format_kb() {
 gwt-clean() {
     local force=0
     local stale_days=120
+    local check_merged_prs=0
 
     while [ $# -gt 0 ]; do
         case "$1" in
             --force|-f) force=1; shift ;;
             --stale-days) stale_days="$2"; shift 2 ;;
+            --check-merged-prs) check_merged_prs=1; shift ;;
             --help|-h)
-                echo "Usage: gwt-clean [--force] [--stale-days N]"
+                echo "Usage: gwt-clean [--force] [--stale-days N] [--check-merged-prs]"
                 echo ""
-                echo "  --force          Actually delete (default: dry run)"
-                echo "  --stale-days N   Override 120-day stale threshold"
+                echo "  --force              Actually delete (default: dry run)"
+                echo "  --stale-days N       Override 120-day stale threshold"
+                echo "  --check-merged-prs   For 'no upstream' branches, query GitHub via"
+                echo "                       'gh' to see if a merged PR exists with that"
+                echo "                       branch as head; treat such branches as merged."
+                echo "                       Requires 'gh' installed and authenticated."
                 return 0
                 ;;
             *)
                 echo "Unknown option: $1" >&2
-                echo "Usage: gwt-clean [--force] [--stale-days N]" >&2
+                echo "Usage: gwt-clean [--force] [--stale-days N] [--check-merged-prs]" >&2
                 return 2
                 ;;
         esac
@@ -328,6 +344,18 @@ gwt-clean() {
         echo "  (no 'main' or 'master' branch locally; using [gone] check only)"
     fi
 
+    if [ "$check_merged_prs" -eq 1 ]; then
+        if ! command -v gh >/dev/null 2>&1; then
+            echo "  (--check-merged-prs: 'gh' not found; skipping PR check)"
+            check_merged_prs=0
+        elif ! (cd "$git_root" && gh auth status >/dev/null 2>&1); then
+            echo "  (--check-merged-prs: 'gh' not authenticated; skipping PR check)"
+            check_merged_prs=0
+        else
+            echo "  (--check-merged-prs: will query GitHub for 'no upstream' branches)"
+        fi
+    fi
+
     local -a to_delete_paths=()
     local -a to_delete_branches=()
     local -a to_delete_merged=()
@@ -349,6 +377,22 @@ gwt-clean() {
         clean_reason=$(_gwt_clean_is_clean "$wt_path")
         local clean_rc=$?
         if [ "$clean_rc" -ne 0 ]; then
+            # Opt-in: for "no upstream" branches, ask GitHub whether a
+            # merged PR exists with this branch as head. Catches the case
+            # of branches pushed without -u, squash-merged, and pruned.
+            if [ "$check_merged_prs" -eq 1 ] && \
+                    [ "$clean_reason" = "no upstream" ] && \
+                    [ -n "$branch" ] && \
+                    (cd "$git_root" && _gwt_clean_pr_is_merged "$branch"); then
+                local size_kb; size_kb=$(_gwt_clean_dir_size_kb "$wt_path")
+                printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "merged PR (no upstream)"
+                to_delete_paths+=("$wt_path")
+                to_delete_branches+=("$branch")
+                to_delete_merged+=("1")
+                delete_count=$((delete_count + 1))
+                reclaim_kb=$((reclaim_kb + size_kb))
+                continue
+            fi
             printf "%-14s %-32s %s\n" "KEEP: dirty" "$rel_name" "$clean_reason"
             continue
         fi

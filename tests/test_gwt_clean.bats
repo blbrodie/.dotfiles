@@ -348,3 +348,87 @@ teardown() {
     [ "$status" -eq 0 ]
     [[ "$output" == *"Usage: gwt-clean"* ]]
 }
+
+# --- --check-merged-prs ---
+# These tests mock `gh` by writing a stub into a temp dir and prepending
+# it to PATH. The stub inspects its args and returns a configured JSON
+# payload for gh pr list, plus exit 0 for gh auth status.
+
+_setup_gh_mock() {
+    # Usage: _setup_gh_mock <merged_branch>
+    # Exports GH_MOCK_DIR; creates a 'gh' stub that reports a merged PR
+    # for $1 and an empty list for every other --head value.
+    GH_MOCK_DIR=$(mktemp -d)
+    cat > "$GH_MOCK_DIR/gh" <<MOCKEOF
+#!/bin/bash
+if [ "\$1" = "auth" ] && [ "\$2" = "status" ]; then
+    exit 0
+fi
+if [ "\$1" = "pr" ] && [ "\$2" = "list" ]; then
+    for arg in "\$@"; do
+        if [ "\$prev" = "--head" ] && [ "\$arg" = "$1" ]; then
+            echo '[{"number":42}]'
+            exit 0
+        fi
+        prev="\$arg"
+    done
+    echo '[]'
+    exit 0
+fi
+exit 1
+MOCKEOF
+    chmod +x "$GH_MOCK_DIR/gh"
+    export PATH="$GH_MOCK_DIR:$PATH"
+}
+
+_teardown_gh_mock() {
+    rm -rf "$GH_MOCK_DIR"
+}
+
+@test "_gwt_clean_pr_is_merged: returns 0 when gh reports a merged PR" {
+    _setup_gh_mock "feat/a"
+    run _gwt_clean_pr_is_merged feat/a
+    [ "$status" -eq 0 ]
+    _teardown_gh_mock
+}
+
+@test "_gwt_clean_pr_is_merged: returns 1 when gh reports no PRs" {
+    _setup_gh_mock "feat/a"
+    run _gwt_clean_pr_is_merged other/branch
+    [ "$status" -eq 1 ]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --check-merged-prs: reclassifies no-upstream+merged as DELETE" {
+    _setup_gh_mock "feat/a"
+    create_worktree "$TEST_REPO" feat/a --no-push
+    cd "$TEST_REPO"
+    run gwt-clean --check-merged-prs
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DELETE"* ]]
+    [[ "$output" == *"feat/a"* ]]
+    [[ "$output" == *"merged PR"* ]]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --check-merged-prs: leaves no-upstream+unmerged as KEEP: dirty" {
+    _setup_gh_mock "feat/merged-elsewhere"
+    create_worktree "$TEST_REPO" feat/a --no-push
+    cd "$TEST_REPO"
+    run gwt-clean --check-merged-prs
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"KEEP: dirty"* ]]
+    [[ "$output" == *"feat/a"* ]]
+    [[ "$output" == *"no upstream"* ]]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean: without --check-merged-prs flag, gh is not consulted" {
+    # No mock — ensure the flag is opt-in.
+    create_worktree "$TEST_REPO" feat/a --no-push
+    cd "$TEST_REPO"
+    run gwt-clean
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"KEEP: dirty"* ]]
+    [[ "$output" == *"no upstream"* ]]
+}
