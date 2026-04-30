@@ -536,3 +536,5 @@ export PATH="/Users/ben/.local/bin:$PATH"
 . "$HOME/.local/bin/env"
 
 alias claude='claude --model opus'
+
+eval "$(task --completion bash)"
