@@ -10,7 +10,7 @@ setup() {
     # of the developer's environment.
     JIRA_BASE_URL="https://jira.example.com"
     JIRA_EMAIL="you@example.com"
-    source_gwtj
+    source_git_worktree
 }
 
 # --- _gwtj_key: extract issue key from a URL or bare input ---

@@ -27,14 +27,15 @@ config files into `$HOME`:
 every `bashrc.d/*.sh` file on startup:
 
 ```
-.bashrc                      # env + PATH + aliases, then sources bashrc.d/*.sh
+.bashrc                # env + PATH + aliases, then sources bashrc.d/*.sh
 bashrc.d/
-  git-worktree.sh            # gwt        — create/switch git worktrees
-  git-worktree-jira.sh       # gwtj       — create a worktree from a Jira issue
-  git-worktree-clean.sh      # gwt-clean  — prune merged/stale worktrees
-  misc.sh                    # small helpers (killport, curltime, ...)
-  work-stuff.local.sh        # (untracked, *.local.sh) machine-specific helpers
+  git-worktree.sh      # gwt (create/switch), gwtj (from Jira), gwt-clean (prune)
+  misc.sh              # small helpers (killport, curltime, ...)
+  work-stuff.local.sh  # (untracked, matches *.local.sh) machine-specific helpers
 ```
+
+Related functions are grouped one-file-per-topic (e.g. all three git-worktree
+commands live in `git-worktree.sh`), not one file per function.
 
 ### Adding a new function
 
@@ -49,16 +50,28 @@ It's picked up automatically on the next shell start — no edit to `.bashrc`
 needed. Keep each file self-contained (define functions only, no side effects)
 so it stays independently sourceable and testable.
 
-## Local / machine-specific config
+## Local / machine-specific config — keep secrets & PII out of git
 
-Anything personal, company-specific, or secret stays **out of this repo**:
+**This repo is public. Never commit secrets or PII.** That means no API tokens,
+passwords, or private keys, and no personal/company specifics: real email
+addresses, internal hostnames or URLs, cluster names, AWS profiles, private repo
+paths, etc. Committed files use generic placeholders (`you@example.com`,
+`https://your-org.atlassian.net`, `<your-profile>`).
 
-- `~/.bashrc.local` — sourced by `.bashrc` before the modules load. Put env
-  vars like `JIRA_EMAIL`, `JIRA_BASE_URL`, and `AWS_PROFILE` here.
-- `bashrc.d/*.local.sh` — gitignored function modules (still auto-loaded).
+Real values live in two untracked locations (both gitignored):
 
-The committed files use generic placeholders (`you@example.com`,
-`https://your-org.atlassian.net`); your real values come from `~/.bashrc.local`.
+- **`~/.bashrc.local`** — sourced by `.bashrc` *before* the modules load. Put
+  per-machine env vars and aliases here: `JIRA_EMAIL`, `JIRA_BASE_URL`,
+  `AWS_PROFILE`, project-nav aliases, etc. Functions in `bashrc.d/` read these
+  via `${VAR:-placeholder}`, so they work locally and stay generic in git.
+- **`bashrc.d/*.local.sh`** — gitignored function modules (still auto-loaded by
+  the same `bashrc.d/*.sh` loader). Use these for entirely internal helpers.
+
+Before committing, sanity-check the staged diff:
+
+```bash
+git grep --cached -nIiE 'your-real-domain|your-company|@your-email-domain'
+```
 
 ## Tests
 

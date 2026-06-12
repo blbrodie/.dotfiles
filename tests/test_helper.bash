@@ -10,12 +10,9 @@ source_bashrc_module() {
     source "${BATS_TEST_DIRNAME}/../bashrc.d/$1"
 }
 
-source_gwt_clean() {
-    source_bashrc_module 'git-worktree-clean.sh'
-}
-
-source_gwtj() {
-    source_bashrc_module 'git-worktree-jira.sh'
+# gwt, gwtj, and gwt-clean all live in one module.
+source_git_worktree() {
+    source_bashrc_module 'git-worktree.sh'
 }
 
 # Create a fresh git repo with a bare remote, a main branch, and one commit.

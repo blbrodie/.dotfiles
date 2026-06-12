@@ -5,7 +5,7 @@ load 'test_helper.bash'
 
 setup() {
     TEST_REPO=$(create_test_repo)
-    source_gwt_clean
+    source_git_worktree
 }
 
 teardown() {
