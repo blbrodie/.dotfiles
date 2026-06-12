@@ -1,0 +1,13 @@
+README.html
+
+# Machine/company-specific shell config — never commit these.
+.bashrc.local
+bashrc.d/*.local.sh
+
+# Secrets / credentials / env files
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_ed25519
