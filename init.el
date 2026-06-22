@@ -59,10 +59,31 @@
 
 (use-package browse-kill-ring :defer t :ensure t)
 
-(use-package company
-  :defer t
+;; In-buffer (at-point) completion. corfu is the popup counterpart to
+;; vertico: it drives completion through Emacs' native completion-at-point +
+;; completion-styles, so orderless matching applies the same as in the
+;; minibuffer. cape adds extra completion-at-point sources (file paths, etc.).
+(use-package corfu
   :ensure t
-  :config (setq company-idle-delay 0.500))
+  :custom
+  (corfu-auto t)            ; popup as you type
+  (corfu-auto-prefix 2)
+  (corfu-cycle t)
+  :init
+  (global-corfu-mode))
+
+;; corfu's popup is graphical-only; fall back to a TTY popup when running
+;; emacs -nw (matches the EDITOR='emacs -nw' setup).
+(use-package corfu-terminal
+  :ensure t
+  :unless (display-graphic-p)
+  :config
+  (corfu-terminal-mode 1))
+
+(use-package cape
+  :ensure t
+  :init
+  (add-hook 'completion-at-point-functions #'cape-file))
 
 (use-package consult
   :defer t
@@ -444,6 +465,9 @@
   :defer t
   :ensure t
   :config
+  ;; Use lsp-mode's native completion-at-point (consumed by corfu) instead of
+  ;; injecting the company-capf backend.
+  (setq lsp-completion-provider :none)
   (setq lsp-java-vmargs '("-noverify" "-Xmx1G" "-XX:+UseG1GC" "-XX:+UseStringDeduplication"))
   (setq lsp-java-import-gradle-version "6.8.1"))
 
@@ -610,8 +634,7 @@ separators with dots and removing the `.py` extension."
   :hook
   (markdown-mode . auto-fill-mode)
   (markdown-mode . display-line-numbers-mode)
-  (markdown-mode . (lambda() (setq-local fill-column 80)))
-  (markdown-mode . company-mode))
+  (markdown-mode . (lambda() (setq-local fill-column 80))))
 
 (use-package midnight :ensure t)
 
@@ -920,7 +943,6 @@ separators with dots and removing the `.py` extension."
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'prog-mode-hook 'display-fill-column-indicator-mode)
 (setq-default fill-column 80)
-(add-hook 'prog-mode-hook 'company-mode)
 (add-hook 'ruby-mode-hook 'rubocop-mode)
 
 (modify-syntax-entry ?_ "w")
@@ -952,7 +974,16 @@ separators with dots and removing the `.py` extension."
      "f366d4bc6d14dcac2963d45df51956b2409a15b770ec2f6d730e73ce0ca5c8a7"
      "fee7287586b17efbfda432f05539b58e86e059e78006ce9237b8732fde991b4c" default))
  '(magit-todos-insert-after '(bottom) nil nil "Changed by setter of obsolete option `magit-todos-insert-at'")
- '(package-selected-packages nil))
+ '(package-selected-packages
+   '(ag auctex auto-package-update browse-kill-ring cape company corfu
+        corfu-terminal csv-mode diff-hl direnv elixir-mode elm-mode
+        embark-consult erlang evil-collection evil-matchit evil-surround
+        exec-path-from-shell flx-ido flycheck git-link go-mode graphql-mode
+        groovy-mode gruvbox-theme hl-todo jq-mode json-mode kotlin-mode lsp-java
+        magit marginalia native-complete orderless projectile protobuf-mode
+        restclient ripgrep rubocop ruff-format shell-maker solarized-theme
+        string-inflection swift-mode treesit-auto vertico web-mode wgrep-ag
+        ws-butler yaml-mode yari zenburn-theme)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
