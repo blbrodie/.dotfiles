@@ -315,6 +315,11 @@
   :init
   (setq evil-want-keybinding nil)
   (setq evil-collection-want-find-usages-bindings t)
+  ;; Submit the prompt with RET while in insert state (the natural state for
+  ;; typing). evil-collection now defaults this to 'normal, which left RET
+  ;; bound to `newline' in insert state — so commands never submitted and
+  ;; M-x shell appeared frozen. Must be set before `evil-collection-init'.
+  (setq evil-collection-repl-submit-state 'insert)
   :config
   (evil-collection-init))
 
