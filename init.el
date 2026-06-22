@@ -984,7 +984,7 @@ separators with dots and removing the `.py` extension."
         embark-consult erlang evil-collection evil-matchit evil-surround
         exec-path-from-shell flx-ido flycheck git-link go-mode graphql-mode
         groovy-mode gruvbox-theme hl-todo jq-mode json-mode kotlin-mode lsp-java
-        magit marginalia native-complete orderless projectile protobuf-mode
+        magit marginalia native-complete orderless protobuf-mode
         restclient ripgrep rubocop ruff-format shell-maker solarized-theme
         string-inflection swift-mode treesit-auto vertico web-mode wgrep-ag
         ws-butler yaml-mode yari zenburn-theme)))
