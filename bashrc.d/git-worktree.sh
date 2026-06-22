@@ -86,8 +86,8 @@ gwt() {
       fi
       cd "worktrees/$1"
 
-      # add to emacs projectile
-      emacsclient -e "(projectile-add-known-project \"$(pwd)/\")"
+      # register the new worktree with Emacs project.el (instant C-c p p switch)
+      emacsclient -e "(project-remember-project (project-current nil \"$(pwd)/\"))" >/dev/null 2>&1
   }
   # Bash completion function
 _gwt_completion() {
