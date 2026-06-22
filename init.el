@@ -89,8 +89,6 @@
   :defer t
   :ensure t
   :config
-    (autoload 'projectile-project-root "projectile")
-    (setq consult-project-function (lambda (_) (projectile-project-root)))
     (setq consult-narrow-key "<")
     (setq recentf-max-menu-items 100)
     (setq recentf-max-saved-items 100)
@@ -894,11 +892,16 @@ separators with dots and removing the `.py` extension."
 (add-to-list 'auto-mode-alist '("\\.jsp\\'" . html-mode))
 (fset 'perl-mode 'cperl-mode)
 
+(defun my/project-root ()
+  "Return the current project root directory, or nil if not in a project."
+  (when-let ((proj (project-current)))
+    (project-root proj)))
+
 (defun copy-project-relative-path ()
   "Copy the current buffer file name relative to project root."
   (interactive)
   (let ((filename (file-relative-name
-                  buffer-file-name (projectile-project-root))))
+                  buffer-file-name (my/project-root))))
     (kill-new filename)
     (message "Copied buffer file name '%s' to the clipboard" filename)))
 
@@ -907,7 +910,7 @@ separators with dots and removing the `.py` extension."
   (let ((import (concat (concat "from " (replace-regexp-in-string "/" "."
                    (replace-regexp-in-string "\.py" ""
                    (file-relative-name
-                  buffer-file-name (projectile-project-root))))) " import")))
+                  buffer-file-name (my/project-root))))) " import")))
     (kill-new import)
     (message "Copied '%s' to the clipboard" import)))
 
