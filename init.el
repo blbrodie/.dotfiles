@@ -710,15 +710,16 @@ separators with dots and removing the `.py` extension."
 ;; 			     (org-present-show-cursor)
 ;; 			     (org-present-read-write)))))
 
-(use-package projectile
-  :defer t
-  :ensure t
-  :bind-keymap
-    ("C-c p" . projectile-command-map)
+;; Built-in project.el replaces projectile. The C-c p prefix is re-pointed at
+;; project-prefix-map, whose key letters already match projectile (f find-file,
+;; p switch-project, b buffer, r replace, d dir, g grep, c compile, k kill,
+;; v vc-dir). project-switch-commands makes C-c p p jump straight into
+;; find-file like projectile did, instead of the action-menu default.
+(use-package project
+  :ensure nil
+  :bind-keymap ("C-c p" . project-prefix-map)
   :config
-    (setq projectile-completion-system 'auto)
-    (projectile-mode)
-  )
+  (setq project-switch-commands #'project-find-file))
 
 (use-package protobuf-mode :defer t :ensure t)
 
