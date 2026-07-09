@@ -3,6 +3,7 @@
 #   gwt        create or switch to a worktree (new branches fork origin/main)
 #   gwtj       create a worktree from a Jira issue (branch named from the ticket)
 #   gwt-clean  prune merged / stale worktrees
+#   gwt-rm     force-remove named worktrees (escape hatch for never-PR'd work)
 
 # ===== gwt: create / switch worktrees =====
 
@@ -14,7 +15,10 @@ _gwt_list() {
       # Uses `git worktree list` so branch names containing '/' work correctly.
       local git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
       [ -z "$git_common_dir" ] && return
-      local git_root=$(dirname "$git_common_dir")
+      # Resolve to an absolute physical path: at the repo root --git-common-dir
+      # is the relative ".git", but `git worktree list` prints absolute paths,
+      # so a relative prefix would never match and the list would come back empty.
+      local git_root=$(cd "$(dirname "$git_common_dir")" && pwd -P) || return
       local prefix="$git_root/worktrees/"
       git worktree list --porcelain 2>/dev/null | awk -v prefix="$prefix" '
           /^worktree / {
@@ -95,8 +99,9 @@ _gwt_completion() {
       local worktrees=$(_gwt_list)
       COMPREPLY=($(compgen -W "$worktrees" -- "$cur"))
   }
-# Register the completion
-complete -F _gwt_completion gwt
+# Register the completion (guarded: `complete` is unavailable in some
+# non-interactive shells, and sourcing this module must never hard-fail).
+complete -F _gwt_completion gwt 2>/dev/null || true
 
 # ===== gwtj: create a worktree from a Jira issue =====
 
@@ -266,8 +271,12 @@ _gwt_clean_newest_mtime() {
     local newest=0 f m
     for f in "$gitdir/HEAD" "$gitdir/logs/HEAD"; do
         [ -f "$f" ] || continue
-        m=$(stat -f '%m' "$f" 2>/dev/null) || continue
-        [ "$m" -gt "$newest" ] && newest="$m"
+        # GNU (Linux) stat uses -c '%Y'; BSD (macOS) stat uses -f '%m'.
+        # GNU-first is deliberate: BSD's `-c` fails cleanly (usage to
+        # stderr, no stdout), whereas GNU's `-f` prints filesystem info to
+        # stdout, which would corrupt the value if tried first.
+        m=$(stat -c '%Y' "$f" 2>/dev/null || stat -f '%m' "$f" 2>/dev/null) || continue
+        [ -n "$m" ] && [ "$m" -gt "$newest" ] && newest="$m"
     done
     [ "$newest" -gt 0 ] && echo "$newest"
 }
@@ -292,58 +301,74 @@ _gwt_clean_age_days() {
     echo $(( ($(date +%s) - newest) / 86400 ))
 }
 
-# Global set by _gwt_clean_load_merged_prs; consumed by _gwt_clean_pr_is_merged.
-# Format: space-padded list, e.g. " feat/a feat/b ". The surrounding spaces make
-# membership a single pattern match ("*\ $branch\ *") with no false positives
-# from branches that are substrings of one another.
-_gwt_clean_merged_prs=""
-
-_gwt_clean_load_merged_prs() {
-    # One gh round-trip to fetch every merged PR's head ref. Echoes a
-    # space-padded string (leading/trailing space) so a caller can stash
-    # it in $_gwt_clean_merged_prs and do membership tests with a single
-    # pattern match. Replaces N serial `gh pr list --head X` calls with a
-    # single call — on repos with many no-upstream worktrees this is the
-    # dominant speedup.
-    local list
-    list=$(gh pr list --state merged --json headRefName \
-            --jq '.[].headRefName' --limit 1000 2>/dev/null) || return 1
-    echo " $(echo "$list" | tr '\n' ' ')"
+_gwt_clean_commit_age_days() {
+    # Echoes integer age in days of HEAD's commit date. Unlike file mtimes,
+    # commit date is not perturbed by gc / fetch / worktree maintenance
+    # (which can bump reflog mtimes long after the last real work), so it is
+    # the reliable "recent work" signal for the merged-PR override: a
+    # post-merge follow-up is a commit, and updates this.
+    local wt="$1" ct
+    ct=$(git -C "$wt" log -1 --format=%ct HEAD 2>/dev/null)
+    [ -z "$ct" ] && { echo 9999; return; }
+    echo $(( ($(date +%s) - ct) / 86400 ))
 }
 
-_gwt_clean_pr_is_merged() {
-    # Usage: _gwt_clean_pr_is_merged <branch>
-    # Pure-bash lookup against the preloaded _gwt_clean_merged_prs set.
-    case "$_gwt_clean_merged_prs" in
-        *" $1 "*) return 0 ;;
-        *) return 1 ;;
-    esac
+_gwt_clean_pr_state() {
+    # Usage: _gwt_clean_pr_state <branch>
+    # Echoes the PR state for this branch head: MERGED, OPEN, CLOSED, or
+    # NONE (no PR / gh error). Prefers MERGED > OPEN > CLOSED when a head
+    # has had multiple PRs.
+    #
+    # This is a per-branch query, NOT a bulk `gh pr list --state merged`
+    # preload. On a high-volume repo the most-recent-N merged PRs cover
+    # only days, so a bulk list silently misses branches merged earlier
+    # and reports them as unmerged. Callers gate this behind cheap local
+    # filters (dirty-but-not-uncommitted + stale) so the round-trip is
+    # paid only for real deletion candidates.
+    local branch="$1"
+    [ -n "$branch" ] || { echo "NONE"; return; }
+    local out
+    out=$(gh pr list --head "$branch" --state all --json state \
+            --jq '[.[].state] as $s
+                  | if   ($s | index("MERGED")) then "MERGED"
+                    elif ($s | index("OPEN"))   then "OPEN"
+                    elif ($s | index("CLOSED")) then "CLOSED"
+                    else "NONE" end' 2>/dev/null)
+    echo "${out:-NONE}"
 }
 
 gwt-clean() {
     local force=0
     local stale_days=120
     local check_merged_prs=0
+    local include_closed=0
 
     while [ $# -gt 0 ]; do
         case "$1" in
             --force|-f) force=1; shift ;;
             --stale-days) stale_days="$2"; shift 2 ;;
             --check-merged-prs) check_merged_prs=1; shift ;;
+            --include-closed) check_merged_prs=1; include_closed=1; shift ;;
             --help|-h)
-                echo "Usage: gwt-clean [--force] [--stale-days N] [--check-merged-prs]"
+                echo "Usage: gwt-clean [--force] [--stale-days N] [--check-merged-prs] [--include-closed]"
                 echo ""
                 echo "  --force              Actually delete (default: dry run)"
                 echo "  --stale-days N       Override 120-day stale threshold"
-                echo "  --check-merged-prs   For 'no upstream' branches, query GitHub via"
-                echo "                       'gh' to see if a merged PR exists with that"
-                echo "                       branch as head; treat such branches as merged."
-                echo "                       Requires 'gh' installed and authenticated."
+                echo "  --check-merged-prs   For a dirty worktree whose only 'dirt' is a"
+                echo "                       missing upstream or unpushed commits (NOT"
+                echo "                       uncommitted edits), query GitHub via 'gh' for a"
+                echo "                       merged PR on that branch head. If merged AND the"
+                echo "                       worktree is stale, delete it: the reviewed work"
+                echo "                       is in the default branch and no recent follow-up"
+                echo "                       remains. Requires 'gh' installed and authed."
+                echo "  --include-closed     Also delete such worktrees whose PR was CLOSED"
+                echo "                       without merging (rejected/abandoned work)."
+                echo "                       Implies --check-merged-prs."
                 return 0
                 ;;
             *)
                 echo "Unknown option: $1" >&2
-                echo "Usage: gwt-clean [--force] [--stale-days N] [--check-merged-prs]" >&2
+                echo "Usage: gwt-clean [--force] [--stale-days N] [--check-merged-prs] [--include-closed]" >&2
                 return 2
                 ;;
         esac
@@ -377,23 +402,13 @@ gwt-clean() {
         echo "  (no 'main' or 'master' branch locally; using [gone] check only)"
     fi
 
-    _gwt_clean_merged_prs=""
     if [ "$check_merged_prs" -eq 1 ]; then
         if ! command -v gh >/dev/null 2>&1; then
-            echo "  (--check-merged-prs: 'gh' not found; skipping PR check)"
-            check_merged_prs=0
+            echo "  (PR checks: 'gh' not found; skipping)"
+            check_merged_prs=0; include_closed=0
         elif ! (cd "$git_root" && gh auth status >/dev/null 2>&1); then
-            echo "  (--check-merged-prs: 'gh' not authenticated; skipping PR check)"
-            check_merged_prs=0
-        else
-            echo "  (--check-merged-prs: fetching merged PR list from GitHub...)"
-            local loaded
-            if loaded=$(cd "$git_root" && _gwt_clean_load_merged_prs); then
-                _gwt_clean_merged_prs="$loaded"
-            else
-                echo "  (--check-merged-prs: gh call failed; skipping PR check)"
-                check_merged_prs=0
-            fi
+            echo "  (PR checks: 'gh' not authenticated; skipping)"
+            check_merged_prs=0; include_closed=0
         fi
     fi
 
@@ -424,19 +439,40 @@ gwt-clean() {
         clean_reason=$(_gwt_clean_is_clean "$wt_path")
         local clean_rc=$?
         if [ "$clean_rc" -ne 0 ]; then
-            # Opt-in: for "no upstream" branches, ask GitHub whether a
-            # merged PR exists with this branch as head. Catches the case
-            # of branches pushed without -u, squash-merged, and pruned.
+            # Opt-in PR override for dirty worktrees. A merged PR proves the
+            # branch's reviewed content is in the default branch — but says
+            # nothing about a dirty delta on top, and squash-merge makes that
+            # delta indistinguishable from real new work via local refs
+            # alone. So we override "dirty" only when BOTH extra guards hold:
+            #   1. the dirt is NOT uncommitted edits — only a missing upstream
+            #      or unpushed commits (the squash-merge artifact). Reflog-
+            #      based staleness can't see the working tree, so uncommitted
+            #      edits are never auto-deleted.
+            #   2. HEAD's commit is older than stale_days. A recent post-merge
+            #      follow-up commit bumps the commit date and keeps it alive.
+            #      (Commit date, not file mtime: gc/fetch bump reflog mtimes
+            #      long after the last real work, which would defeat this.)
+            # --include-closed additionally sweeps CLOSED (rejected) PRs.
+            local commit_age; commit_age=$(_gwt_clean_commit_age_days "$wt_path")
             if [ "$check_merged_prs" -eq 1 ] && \
-                    [ "$clean_reason" = "no upstream" ] && \
+                    [ "$clean_reason" != "uncommitted changes" ] && \
                     [ -n "$branch" ] && \
-                    _gwt_clean_pr_is_merged "$branch"; then
-                printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "merged PR (no upstream)"
-                to_delete_paths+=("$wt_path")
-                to_delete_branches+=("$branch")
-                to_delete_branch_action+=("force")
-                delete_count=$((delete_count + 1))
-                continue
+                    [ "$commit_age" -ge "$stale_days" ]; then
+                local pr_state
+                pr_state=$(cd "$git_root" && _gwt_clean_pr_state "$branch")
+                local age="$commit_age"
+                if [ "$pr_state" = "MERGED" ] || \
+                        { [ "$include_closed" -eq 1 ] && [ "$pr_state" = "CLOSED" ]; }; then
+                    local why="merged PR"
+                    [ "$pr_state" = "CLOSED" ] && why="closed PR"
+                    printf "%-14s %-32s %s\n" "DELETE" "$rel_name" \
+                        "$why, last commit ${age}d ago, $clean_reason"
+                    to_delete_paths+=("$wt_path")
+                    to_delete_branches+=("$branch")
+                    to_delete_branch_action+=("force")
+                    delete_count=$((delete_count + 1))
+                    continue
+                fi
             fi
             printf "%-14s %-32s %s\n" "KEEP: dirty" "$rel_name" "$clean_reason"
             continue
@@ -519,3 +555,55 @@ gwt-clean() {
     echo ""
     echo "Deleted $deleted worktrees"
 }
+
+# ===== gwt-rm: explicit removal of named worktrees =====
+
+# Force-remove one or more worktrees (by name relative to <repo>/worktrees/)
+# and delete their local branches — no dirty/merge checks. This is the
+# escape hatch for work gwt-clean will never reclaim on its own: branches
+# that never had a PR, where the worktree holds the only copy of the work.
+# There is no safe automatic signal that such work is disposable, so
+# discarding it is a deliberate, per-name decision.
+gwt-rm() {
+    if [ -z "$1" ]; then
+        echo "Usage: gwt-rm <name> [name...]" >&2
+        echo "  Force-removes worktrees under <repo>/worktrees/ and deletes" >&2
+        echo "  their local branches. Discards uncommitted changes and unmerged" >&2
+        echo "  commits without asking — intended for branches you've decided to" >&2
+        echo "  drop that gwt-clean leaves alone (e.g. never had a PR)." >&2
+        return 2
+    fi
+
+    local git_common_dir
+    git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+    if [ -z "$git_common_dir" ]; then
+        echo "Error: Not in a git repository" >&2
+        return 1
+    fi
+    local git_root
+    git_root=$(cd "$(dirname "$git_common_dir")" && pwd -P)
+    local worktrees_dir="$git_root/worktrees"
+
+    local name wt branch removed=0
+    for name in "$@"; do
+        wt="$worktrees_dir/$name"
+        if [ ! -d "$wt" ]; then
+            echo "  skip: no worktree at '$name'" >&2
+            continue
+        fi
+        branch=$(git -C "$wt" symbolic-ref --short HEAD 2>/dev/null)
+        if (cd "$git_root" && git worktree remove --force "$wt" 2>/dev/null); then
+            removed=$((removed + 1))
+            echo "removed $name"
+            if [ -n "$branch" ]; then
+                (cd "$git_root" && git branch -D "$branch" >/dev/null 2>&1) && \
+                    echo "  deleted branch $branch"
+            fi
+        else
+            echo "  failed to remove '$name'" >&2
+        fi
+    done
+    (cd "$git_root" && git worktree prune 2>/dev/null)
+    echo "Removed $removed worktrees"
+}
+complete -F _gwt_completion gwt-rm 2>/dev/null || true
