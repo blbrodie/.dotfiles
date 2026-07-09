@@ -324,27 +324,39 @@ teardown() {
     [[ "$output" == *"Usage: gwt-clean"* ]]
 }
 
-# --- --check-merged-prs ---
+# --- --check-merged-prs / --include-closed ---
 # These tests mock `gh` by writing a stub into a temp dir and prepending
-# it to PATH. The stub returns a pre-configured list of merged PR head
-# refs (one per line), records each 'gh pr list' invocation to a file so
-# tests can assert batching behavior, and exits 0 for `gh auth status`.
+# it to PATH. The stub answers per-branch `gh pr list --head <b>` queries
+# from a configured branch->state map, records each invocation (with the
+# queried branch) so tests can assert what was consulted, and exits 0 for
+# `gh auth status`.
 
 _setup_gh_mock() {
-    # Usage: _setup_gh_mock [merged_branch...]
-    # Any branches passed are echoed by `gh pr list ...`, simulating the
-    # `--jq '.[].headRefName'` output of a real call.
+    # Usage: _setup_gh_mock [branch:STATE ...]
+    #   e.g. _setup_gh_mock feat/a:MERGED feat/b:CLOSED
+    # A `gh pr list --head <b>` for a mapped branch echoes its STATE
+    # (MERGED/OPEN/CLOSED); unmapped branches echo nothing (=> NONE). The
+    # stub ignores --json/--jq, so gwt-clean captures the echoed state
+    # directly — same observable result as the real `--jq` pipeline.
     GH_MOCK_DIR=$(mktemp -d)
     : > "$GH_MOCK_DIR/calls"
-    printf '%s\n' "$@" > "$GH_MOCK_DIR/merged_branches"
-    cat > "$GH_MOCK_DIR/gh" <<MOCKEOF
+    printf '%s\n' "$@" > "$GH_MOCK_DIR/pr_map"
+    cat > "$GH_MOCK_DIR/gh" <<'MOCKEOF'
 #!/bin/bash
-if [ "\$1" = "auth" ] && [ "\$2" = "status" ]; then
+DIR="$(dirname "$0")"
+if [ "$1" = "auth" ] && [ "$2" = "status" ]; then
     exit 0
 fi
-if [ "\$1" = "pr" ] && [ "\$2" = "list" ]; then
-    echo "list" >> "$GH_MOCK_DIR/calls"
-    cat "$GH_MOCK_DIR/merged_branches"
+if [ "$1" = "pr" ] && [ "$2" = "list" ]; then
+    head=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --head) head="$2"; shift 2 ;;
+            *) shift ;;
+        esac
+    done
+    echo "list $head" >> "$DIR/calls"
+    grep "^${head}:" "$DIR/pr_map" 2>/dev/null | head -1 | cut -d: -f2
     exit 0
 fi
 exit 1
@@ -357,36 +369,39 @@ _teardown_gh_mock() {
     rm -rf "$GH_MOCK_DIR"
 }
 
-@test "_gwt_clean_pr_is_merged: returns 0 when branch is in loaded list" {
-    _gwt_clean_merged_prs=" feat/a feat/b "
-    run _gwt_clean_pr_is_merged feat/a
+@test "_gwt_clean_pr_state: reports MERGED for a merged branch" {
+    _setup_gh_mock "feat/a:MERGED"
+    run _gwt_clean_pr_state feat/a
     [ "$status" -eq 0 ]
-}
-
-@test "_gwt_clean_pr_is_merged: returns 1 when branch is not in loaded list" {
-    _gwt_clean_merged_prs=" feat/a feat/b "
-    run _gwt_clean_pr_is_merged other/branch
-    [ "$status" -eq 1 ]
-}
-
-@test "_gwt_clean_pr_is_merged: does not false-match on substrings" {
-    _gwt_clean_merged_prs=" feat/a "
-    run _gwt_clean_pr_is_merged feat/abc
-    [ "$status" -eq 1 ]
-}
-
-@test "_gwt_clean_load_merged_prs: echoes space-padded list from gh" {
-    _setup_gh_mock "feat/a" "feat/b"
-    run _gwt_clean_load_merged_prs
-    [ "$status" -eq 0 ]
-    [[ "$output" == *" feat/a "* ]]
-    [[ "$output" == *" feat/b "* ]]
+    [ "$output" = "MERGED" ]
     _teardown_gh_mock
 }
 
-@test "gwt-clean --check-merged-prs: reclassifies no-upstream+merged as DELETE" {
-    _setup_gh_mock "feat/a"
+@test "_gwt_clean_pr_state: reports CLOSED for a closed-unmerged branch" {
+    _setup_gh_mock "feat/a:CLOSED"
+    run _gwt_clean_pr_state feat/a
+    [ "$output" = "CLOSED" ]
+    _teardown_gh_mock
+}
+
+@test "_gwt_clean_pr_state: reports NONE when no PR exists for the branch" {
+    _setup_gh_mock "feat/other:MERGED"
+    run _gwt_clean_pr_state feat/a
+    [ "$output" = "NONE" ]
+    _teardown_gh_mock
+}
+
+@test "_gwt_clean_pr_state: queries by the exact branch head" {
+    _setup_gh_mock "feat/a:MERGED"
+    _gwt_clean_pr_state feat/a >/dev/null
+    grep -qx "list feat/a" "$GH_MOCK_DIR/calls"
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --check-merged-prs: merged + no-upstream + STALE => DELETE" {
+    _setup_gh_mock "feat/a:MERGED"
     create_worktree "$TEST_REPO" feat/a --no-push
+    set_commit_age_days "$TEST_REPO/worktrees/feat/a" 200
     cd "$TEST_REPO"
     run gwt-clean --check-merged-prs
     [ "$status" -eq 0 ]
@@ -396,46 +411,96 @@ _teardown_gh_mock() {
     _teardown_gh_mock
 }
 
-@test "gwt-clean --check-merged-prs: leaves no-upstream+unmerged as KEEP: dirty" {
-    _setup_gh_mock "feat/merged-elsewhere"
+@test "gwt-clean --check-merged-prs: merged + no-upstream + RECENT => KEEP (protects follow-up work)" {
+    # A merged PR proves the reviewed baseline is in main, but a RECENT
+    # no-upstream worktree may carry post-merge commits that squash-merge
+    # makes indistinguishable from merged content. A recent commit date is
+    # the guard. create_worktree leaves a just-made (recent) commit.
+    _setup_gh_mock "feat/a:MERGED"
     create_worktree "$TEST_REPO" feat/a --no-push
     cd "$TEST_REPO"
     run gwt-clean --check-merged-prs
     [ "$status" -eq 0 ]
     [[ "$output" == *"KEEP: dirty"* ]]
     [[ "$output" == *"feat/a"* ]]
-    [[ "$output" == *"no upstream"* ]]
+    # Recent worktrees short-circuit before any gh query.
+    [ ! -s "$GH_MOCK_DIR/calls" ]
     _teardown_gh_mock
 }
 
-@test "gwt-clean --force --check-merged-prs: force-deletes branch when PR was merged (squash case)" {
-    # Simulate a squash-merged PR: the local branch has commits that
-    # differ from master (no-push keeps them local-only, which is the
-    # same shape as a branch whose remote was pruned after squash).
-    # Plain `git branch -d` would refuse; `-D` is correct here because
-    # gh has confirmed the PR is merged.
-    _setup_gh_mock "feat/a"
+@test "gwt-clean --check-merged-prs: merged + unpushed commits + stale => DELETE" {
+    _setup_gh_mock "feat/a:MERGED"
+    create_worktree "$TEST_REPO" feat/a
+    unpushed_commit_in_worktree "$TEST_REPO/worktrees/feat/a"
+    set_commit_age_days "$TEST_REPO/worktrees/feat/a" 200
+    cd "$TEST_REPO"
+    run gwt-clean --check-merged-prs
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DELETE"* ]]
+    [[ "$output" == *"feat/a"* ]]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --check-merged-prs: uncommitted changes are NEVER overridden, even if merged+stale" {
+    _setup_gh_mock "feat/a:MERGED"
+    create_worktree "$TEST_REPO" feat/a
+    dirty_worktree "$TEST_REPO/worktrees/feat/a"
+    set_commit_age_days "$TEST_REPO/worktrees/feat/a" 200
+    cd "$TEST_REPO"
+    run gwt-clean --check-merged-prs
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"KEEP: dirty"* ]]
+    [[ "$output" == *"uncommitted changes"* ]]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --check-merged-prs: no PR (NONE) + stale => KEEP: dirty" {
+    _setup_gh_mock "feat/other:MERGED"
     create_worktree "$TEST_REPO" feat/a --no-push
+    set_commit_age_days "$TEST_REPO/worktrees/feat/a" 200
+    cd "$TEST_REPO"
+    run gwt-clean --check-merged-prs
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"KEEP: dirty"* ]]
+    [[ "$output" == *"feat/a"* ]]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --include-closed: closed-unmerged + stale => DELETE" {
+    _setup_gh_mock "feat/a:CLOSED"
+    create_worktree "$TEST_REPO" feat/a --no-push
+    set_commit_age_days "$TEST_REPO/worktrees/feat/a" 200
+    cd "$TEST_REPO"
+    run gwt-clean --include-closed
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"DELETE"* ]]
+    [[ "$output" == *"closed PR"* ]]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --check-merged-prs: closed-unmerged is KEEP without --include-closed" {
+    _setup_gh_mock "feat/a:CLOSED"
+    create_worktree "$TEST_REPO" feat/a --no-push
+    set_commit_age_days "$TEST_REPO/worktrees/feat/a" 200
+    cd "$TEST_REPO"
+    run gwt-clean --check-merged-prs
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"KEEP: dirty"* ]]
+    _teardown_gh_mock
+}
+
+@test "gwt-clean --force --check-merged-prs: force-deletes stale merged branch (squash case)" {
+    # Squash-merged PR shape: local commits differ from main and `git
+    # branch -d` would refuse; `-D` is correct because gh confirmed merge.
+    _setup_gh_mock "feat/a:MERGED"
+    create_worktree "$TEST_REPO" feat/a --no-push
+    set_commit_age_days "$TEST_REPO/worktrees/feat/a" 200
     cd "$TEST_REPO"
     run gwt-clean --force --check-merged-prs
     [ "$status" -eq 0 ]
     [ ! -d "$TEST_REPO/worktrees/feat/a" ]
     run git -C "$TEST_REPO" show-ref --verify --quiet refs/heads/feat/a
     [ "$status" -ne 0 ]  # branch is gone
-    _teardown_gh_mock
-}
-
-@test "gwt-clean --check-merged-prs: calls 'gh pr list' only once (batched)" {
-    _setup_gh_mock "feat/a"
-    create_worktree "$TEST_REPO" feat/a --no-push
-    create_worktree "$TEST_REPO" feat/b --no-push
-    create_worktree "$TEST_REPO" feat/c --no-push
-    cd "$TEST_REPO"
-    run gwt-clean --check-merged-prs
-    [ "$status" -eq 0 ]
-    local count
-    count=$(grep -c '^list' "$GH_MOCK_DIR/calls" 2>/dev/null)
-    [ "$count" -eq 1 ]
     _teardown_gh_mock
 }
 
@@ -447,4 +512,43 @@ _teardown_gh_mock() {
     [ "$status" -eq 0 ]
     [[ "$output" == *"KEEP: dirty"* ]]
     [[ "$output" == *"no upstream"* ]]
+}
+
+# --- gwt-rm: explicit removal of never-PR'd worktrees ---
+
+@test "gwt-rm: force-removes a dirty worktree and deletes its branch" {
+    create_worktree "$TEST_REPO" feat/a --no-push
+    dirty_worktree "$TEST_REPO/worktrees/feat/a"
+    cd "$TEST_REPO"
+    run gwt-rm feat/a
+    [ "$status" -eq 0 ]
+    [ ! -d "$TEST_REPO/worktrees/feat/a" ]
+    run git -C "$TEST_REPO" show-ref --verify --quiet refs/heads/feat/a
+    [ "$status" -ne 0 ]
+}
+
+@test "gwt-rm: removes multiple worktrees in one call" {
+    create_worktree "$TEST_REPO" feat/a --no-push
+    create_worktree "$TEST_REPO" feat/b --no-push
+    cd "$TEST_REPO"
+    run gwt-rm feat/a feat/b
+    [ "$status" -eq 0 ]
+    [ ! -d "$TEST_REPO/worktrees/feat/a" ]
+    [ ! -d "$TEST_REPO/worktrees/feat/b" ]
+}
+
+@test "gwt-rm: skips a name with no matching worktree, keeps going" {
+    create_worktree "$TEST_REPO" feat/a --no-push
+    cd "$TEST_REPO"
+    run gwt-rm nope feat/a
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"skip"* ]]
+    [ ! -d "$TEST_REPO/worktrees/feat/a" ]
+}
+
+@test "gwt-rm: with no arguments prints usage and exits non-zero" {
+    cd "$TEST_REPO"
+    run gwt-rm
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Usage: gwt-rm"* ]]
 }

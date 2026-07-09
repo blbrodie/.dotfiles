@@ -19,7 +19,7 @@ source_git_worktree() {
 # Echoes the repo path.
 create_test_repo() {
     local dir
-    dir=$(mktemp -d -t gwtclean)
+    dir=$(mktemp -d "${TMPDIR:-/tmp}/gwtclean.XXXXXX")
     git init -q -b main "$dir"
     git -C "$dir" config user.email "test@test.com"
     git -C "$dir" config user.name "Test"
@@ -77,12 +77,24 @@ delete_remote_branch() {
 set_path_age_days() {
     local path="$1" days="$2"
     local ts
-    ts=$(date -v-"${days}"d +%Y%m%d%H%M.%S)
+    # BSD (macOS) date uses -v; GNU (Linux) date uses -d.
+    ts=$(date -v-"${days}"d +%Y%m%d%H%M.%S 2>/dev/null \
+         || date -d "${days} days ago" +%Y%m%d%H%M.%S)
     find "$path" -exec touch -t "$ts" {} +
     local gitdir
     gitdir=$(git -C "$path" rev-parse --git-dir 2>/dev/null) || return 0
     [ "${gitdir:0:1}" != "/" ] && gitdir="$path/$gitdir"
     find "$gitdir" -exec touch -t "$ts" {} + 2>/dev/null
+}
+
+# Backdate HEAD's commit in a worktree so commit-age-based staleness (used
+# by gwt-clean's merged-PR override) treats it as old. File mtimes are left
+# alone — this exercises the commit-date signal specifically.
+set_commit_age_days() {
+    local wt="$1" days="$2" iso
+    iso=$(date -v-"${days}"d "+%Y-%m-%dT%H:%M:%S" 2>/dev/null \
+          || date -d "${days} days ago" "+%Y-%m-%dT%H:%M:%S")
+    GIT_COMMITTER_DATE="$iso" git -C "$wt" commit --amend --no-edit --date "$iso" -q
 }
 
 # Write a tracked-but-uncommitted edit into a worktree.
