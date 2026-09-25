@@ -4,13 +4,22 @@
 #   gwtj       create a worktree from a Jira issue (branch named from the ticket)
 #   gwt-clean  prune merged / stale worktrees
 #   gwt-rm     force-remove named worktrees (escape hatch for never-PR'd work)
+#
+# Private helpers are named __gwt*, with two underscores. Claude Code's Bash
+# tool does not source this file; it replays a snapshot of the shell whose
+# function list is filtered through `grep -vE '^_[^_]'` to drop completion
+# functions. A single-underscore helper is stripped there while its public
+# caller survives, so gwtj would die on "_gwtj_key: command not found". Only
+# _gwt_completion keeps one underscore: readline invokes it in an interactive
+# shell, which is never the snapshot. tests/test_snapshot_compat.bats enforces
+# this for every helper reachable from a public entry point.
 
 # ===== gwt: create / switch worktrees =====
 
 # git worktree helper: gwt (create/switch worktrees) + bash completion.
 
 # git worktrees
-_gwt_list() {
+__gwt_list() {
       # Prints worktree paths relative to <repo>/worktrees/, one per line.
       # Uses `git worktree list` so branch names containing '/' work correctly.
       local git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
@@ -33,7 +42,7 @@ gwt() {
       if [ -z "$1" ]; then
           echo "Usage: gwt <branch_name>"
           echo "Available worktrees:"
-          local wts=$(_gwt_list)
+          local wts=$(__gwt_list)
           if [ -n "$wts" ]; then
               echo "$wts" | sed 's/^/  /'
           else
@@ -96,7 +105,7 @@ gwt() {
   # Bash completion function
 _gwt_completion() {
       local cur="${COMP_WORDS[COMP_CWORD]}"
-      local worktrees=$(_gwt_list)
+      local worktrees=$(__gwt_list)
       COMPREPLY=($(compgen -W "$worktrees" -- "$cur"))
   }
 # Register the completion (guarded: `complete` is unavailable in some
@@ -114,12 +123,12 @@ complete -F _gwt_completion gwt 2>/dev/null || true
 JIRA_BASE_URL="${JIRA_BASE_URL:-https://your-org.atlassian.net}"
 JIRA_EMAIL="${JIRA_EMAIL:-you@example.com}"
 
-_gwtj_key() {
+__gwtj_key() {
     # Extract an ISSUE-123 key from a Jira URL or bare key, normalized to uppercase.
     printf '%s' "$1" | grep -oiE '[A-Z][A-Z0-9]+-[0-9]+' | head -n1 | tr '[:lower:]' '[:upper:]'
 }
 
-_gwtj_slug() {
+__gwtj_slug() {
     # Slugify stdin: lowercase, non-alnum -> '-', collapse/trim.
     # If longer than 50 chars, truncate at a word ('-') boundary.
     local slug
@@ -137,7 +146,7 @@ _gwtj_slug() {
     printf '%s' "$head"
 }
 
-_gwtj_token() {
+__gwtj_token() {
     # Prefer JIRA_API_TOKEN; fall back to the macOS keychain.
     if [ -n "${JIRA_API_TOKEN:-}" ]; then
         printf '%s' "$JIRA_API_TOKEN"
@@ -146,7 +155,7 @@ _gwtj_token() {
     security find-generic-password -s jira-api-token -a "$JIRA_EMAIL" -w 2>/dev/null
 }
 
-_gwtj_context_body() {
+__gwtj_context_body() {
     # Render CLAUDE.local.md body. Args: <key> <status> <summary>.
     local key="$1" status="$2" summary="$3"
     printf '# Jira: %s\n' "$key"
@@ -163,14 +172,14 @@ gwtj() {
     fi
 
     local key
-    key=$(_gwtj_key "$1")
+    key=$(__gwtj_key "$1")
     if [ -z "$key" ]; then
         echo "Error: could not find a Jira issue key in '$1'" >&2
         return 1
     fi
 
     local token
-    token=$(_gwtj_token)
+    token=$(__gwtj_token)
     if [ -z "$token" ]; then
         echo "Error: no Jira API token found." >&2
         echo "Set JIRA_API_TOKEN, or store one in the keychain:" >&2
@@ -186,7 +195,7 @@ gwtj() {
 
     if [ -n "$summary" ]; then
         local slug
-        slug=$(printf '%s' "$summary" | _gwtj_slug)
+        slug=$(printf '%s' "$summary" | __gwtj_slug)
         [ -n "$slug" ] && branch="$key-$slug"
     else
         echo "Warning: couldn't fetch summary for $key; using key only" >&2
@@ -198,7 +207,7 @@ gwtj() {
     # gwt leaves us in the worktree root on success. Drop a Jira context file
     # that Claude Code auto-loads, and exclude it locally so it's never committed.
     if [ ! -e CLAUDE.local.md ]; then
-        _gwtj_context_body "$key" "$status" "$summary" > CLAUDE.local.md
+        __gwtj_context_body "$key" "$status" "$summary" > CLAUDE.local.md
         local exclude current=""
         exclude="$(git rev-parse --git-common-dir 2>/dev/null)/info/exclude"
         [ -f "$exclude" ] && current=$(<"$exclude")
@@ -212,7 +221,7 @@ gwtj() {
 
 # ===== gwt-clean: prune merged / stale worktrees =====
 
-_gwt_clean_default_branch() {
+__gwt_clean_default_branch() {
     # Echo "main" or "master" (whichever exists locally), or empty if neither.
     if git show-ref --verify --quiet refs/heads/main 2>/dev/null; then
         echo "main"
@@ -220,8 +229,8 @@ _gwt_clean_default_branch() {
         echo "master"
     fi
 }
-_gwt_clean_is_merged() {
-    # Usage: _gwt_clean_is_merged <branch> <default_branch>
+__gwt_clean_is_merged() {
+    # Usage: __gwt_clean_is_merged <branch> <default_branch>
     # Returns 0 if branch is reachable from default_branch OR has [gone] upstream.
     # Caller is responsible for having run `git fetch --prune` beforehand.
     local branch="$1" default_branch="$2"
@@ -235,8 +244,8 @@ _gwt_clean_is_merged() {
     upstream_status=$(git for-each-ref --format='%(upstream:track)' "refs/heads/$branch" 2>/dev/null)
     [ "$upstream_status" = "[gone]" ]
 }
-_gwt_clean_is_clean() {
-    # Usage: _gwt_clean_is_clean <worktree-path>
+__gwt_clean_is_clean() {
+    # Usage: __gwt_clean_is_clean <worktree-path>
     # Returns 0 if clean. Returns 1 and echoes reason if not.
     local wt="$1"
     if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then
@@ -255,7 +264,7 @@ _gwt_clean_is_clean() {
     fi
     return 0
 }
-_gwt_clean_newest_mtime() {
+__gwt_clean_newest_mtime() {
     # Echoes a unix timestamp reflecting recent ref-changing activity on
     # this worktree. Reads HEAD and logs/HEAD (the reflog) in the gitdir
     # rather than scanning every file — for a clean worktree (the only
@@ -281,27 +290,27 @@ _gwt_clean_newest_mtime() {
     [ "$newest" -gt 0 ] && echo "$newest"
 }
 
-_gwt_clean_is_stale() {
-    # Usage: _gwt_clean_is_stale <worktree-path> <stale_days>
+__gwt_clean_is_stale() {
+    # Usage: __gwt_clean_is_stale <worktree-path> <stale_days>
     # Returns 0 if newest file mtime is older than stale_days.
     local wt="$1" stale_days="$2"
     local newest
-    newest=$(_gwt_clean_newest_mtime "$wt")
+    newest=$(__gwt_clean_newest_mtime "$wt")
     [ -z "$newest" ] && return 0  # empty worktree: treat as stale
     local threshold=$(( $(date +%s) - stale_days * 86400 ))
     [ "$newest" -lt "$threshold" ]
 }
 
-_gwt_clean_age_days() {
+__gwt_clean_age_days() {
     # Echoes integer age in days of newest file mtime.
     local wt="$1"
     local newest
-    newest=$(_gwt_clean_newest_mtime "$wt")
+    newest=$(__gwt_clean_newest_mtime "$wt")
     [ -z "$newest" ] && { echo 9999; return; }
     echo $(( ($(date +%s) - newest) / 86400 ))
 }
 
-_gwt_clean_commit_age_days() {
+__gwt_clean_commit_age_days() {
     # Echoes integer age in days of HEAD's commit date. Unlike file mtimes,
     # commit date is not perturbed by gc / fetch / worktree maintenance
     # (which can bump reflog mtimes long after the last real work), so it is
@@ -313,8 +322,8 @@ _gwt_clean_commit_age_days() {
     echo $(( ($(date +%s) - ct) / 86400 ))
 }
 
-_gwt_clean_pr_state() {
-    # Usage: _gwt_clean_pr_state <branch>
+__gwt_clean_pr_state() {
+    # Usage: __gwt_clean_pr_state <branch>
     # Echoes the PR state for this branch head: MERGED, OPEN, CLOSED, or
     # NONE (no PR / gh error). Prefers MERGED > OPEN > CLOSED when a head
     # has had multiple PRs.
@@ -397,7 +406,7 @@ gwt-clean() {
         echo "  (fetch failed; continuing with local info)"
 
     local default_branch
-    default_branch=$(cd "$git_root" && _gwt_clean_default_branch)
+    default_branch=$(cd "$git_root" && __gwt_clean_default_branch)
     if [ -z "$default_branch" ]; then
         echo "  (no 'main' or 'master' branch locally; using [gone] check only)"
     fi
@@ -436,7 +445,7 @@ gwt-clean() {
         fi
 
         local clean_reason
-        clean_reason=$(_gwt_clean_is_clean "$wt_path")
+        clean_reason=$(__gwt_clean_is_clean "$wt_path")
         local clean_rc=$?
         if [ "$clean_rc" -ne 0 ]; then
             # Opt-in PR override for dirty worktrees. A merged PR proves the
@@ -453,13 +462,13 @@ gwt-clean() {
             #      (Commit date, not file mtime: gc/fetch bump reflog mtimes
             #      long after the last real work, which would defeat this.)
             # --include-closed additionally sweeps CLOSED (rejected) PRs.
-            local commit_age; commit_age=$(_gwt_clean_commit_age_days "$wt_path")
+            local commit_age; commit_age=$(__gwt_clean_commit_age_days "$wt_path")
             if [ "$check_merged_prs" -eq 1 ] && \
                     [ "$clean_reason" != "uncommitted changes" ] && \
                     [ -n "$branch" ] && \
                     [ "$commit_age" -ge "$stale_days" ]; then
                 local pr_state
-                pr_state=$(cd "$git_root" && _gwt_clean_pr_state "$branch")
+                pr_state=$(cd "$git_root" && __gwt_clean_pr_state "$branch")
                 local age="$commit_age"
                 if [ "$pr_state" = "MERGED" ] || \
                         { [ "$include_closed" -eq 1 ] && [ "$pr_state" = "CLOSED" ]; }; then
@@ -480,7 +489,7 @@ gwt-clean() {
 
         # Merged check is cheap (reads refs). If merged, we're deleting
         # regardless of age, so skip the staleness check entirely.
-        if (cd "$git_root" && _gwt_clean_is_merged "$branch" "$default_branch"); then
+        if (cd "$git_root" && __gwt_clean_is_merged "$branch" "$default_branch"); then
             printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "merged, clean"
             to_delete_paths+=("$wt_path")
             to_delete_branches+=("$branch")
@@ -489,8 +498,8 @@ gwt-clean() {
             continue
         fi
 
-        local age; age=$(_gwt_clean_age_days "$wt_path")
-        if _gwt_clean_is_stale "$wt_path" "$stale_days"; then
+        local age; age=$(__gwt_clean_age_days "$wt_path")
+        if __gwt_clean_is_stale "$wt_path" "$stale_days"; then
             printf "%-14s %-32s %s\n" "DELETE" "$rel_name" "stale (${age}d), clean"
             to_delete_paths+=("$wt_path")
             to_delete_branches+=("$branch")

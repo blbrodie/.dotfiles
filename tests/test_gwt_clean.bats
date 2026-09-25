@@ -18,135 +18,135 @@ teardown() {
     [ "$output" = "main" ]
 }
 
-@test "_gwt_clean_default_branch returns main when main exists" {
+@test "__gwt_clean_default_branch returns main when main exists" {
     cd "$TEST_REPO"
-    run _gwt_clean_default_branch
+    run __gwt_clean_default_branch
     [ "$status" -eq 0 ]
     [ "$output" = "main" ]
 }
 
-@test "_gwt_clean_default_branch returns master when only master exists" {
+@test "__gwt_clean_default_branch returns master when only master exists" {
     cd "$TEST_REPO"
     git branch -m main master
-    run _gwt_clean_default_branch
+    run __gwt_clean_default_branch
     [ "$status" -eq 0 ]
     [ "$output" = "master" ]
 }
 
-@test "_gwt_clean_default_branch returns empty when neither exists" {
+@test "__gwt_clean_default_branch returns empty when neither exists" {
     cd "$TEST_REPO"
     git branch -m main dev
-    run _gwt_clean_default_branch
+    run __gwt_clean_default_branch
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
-@test "_gwt_clean_is_clean: pushed & untouched worktree is clean" {
+@test "__gwt_clean_is_clean: pushed & untouched worktree is clean" {
     create_worktree "$TEST_REPO" feat/a
-    run _gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
+    run __gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
     [ "$status" -eq 0 ]
 }
 
-@test "_gwt_clean_is_clean: uncommitted changes => not clean" {
+@test "__gwt_clean_is_clean: uncommitted changes => not clean" {
     create_worktree "$TEST_REPO" feat/a
     dirty_worktree "$TEST_REPO/worktrees/feat/a"
-    run _gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
+    run __gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
     [ "$status" -eq 1 ]
     [[ "$output" == *"uncommitted"* ]]
 }
 
-@test "_gwt_clean_is_clean: no upstream => not clean" {
+@test "__gwt_clean_is_clean: no upstream => not clean" {
     create_worktree "$TEST_REPO" feat/a --no-push
-    run _gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
+    run __gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
     [ "$status" -eq 1 ]
     [[ "$output" == *"no upstream"* ]]
 }
 
-@test "_gwt_clean_is_clean: unpushed commits => not clean" {
+@test "__gwt_clean_is_clean: unpushed commits => not clean" {
     create_worktree "$TEST_REPO" feat/a
     unpushed_commit_in_worktree "$TEST_REPO/worktrees/feat/a"
-    run _gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
+    run __gwt_clean_is_clean "$TEST_REPO/worktrees/feat/a"
     [ "$status" -eq 1 ]
     [[ "$output" == *"unpushed"* ]]
 }
 
-@test "_gwt_clean_is_merged: branch merged into main => merged" {
+@test "__gwt_clean_is_merged: branch merged into main => merged" {
     create_worktree "$TEST_REPO" feat/a
     merge_branch_to_main "$TEST_REPO" feat/a
     cd "$TEST_REPO"
-    run _gwt_clean_is_merged feat/a main
+    run __gwt_clean_is_merged feat/a main
     [ "$status" -eq 0 ]
 }
 
-@test "_gwt_clean_is_merged: unmerged branch with live remote => not merged" {
+@test "__gwt_clean_is_merged: unmerged branch with live remote => not merged" {
     create_worktree "$TEST_REPO" feat/a
     cd "$TEST_REPO"
-    run _gwt_clean_is_merged feat/a main
+    run __gwt_clean_is_merged feat/a main
     [ "$status" -eq 1 ]
 }
 
-@test "_gwt_clean_is_merged: upstream [gone] => merged" {
+@test "__gwt_clean_is_merged: upstream [gone] => merged" {
     create_worktree "$TEST_REPO" feat/a
     delete_remote_branch "$TEST_REPO" feat/a
     cd "$TEST_REPO"
-    run _gwt_clean_is_merged feat/a main
+    run __gwt_clean_is_merged feat/a main
     [ "$status" -eq 0 ]
 }
 
-@test "_gwt_clean_is_merged: empty default_branch still detects [gone]" {
+@test "__gwt_clean_is_merged: empty default_branch still detects [gone]" {
     create_worktree "$TEST_REPO" feat/a
     delete_remote_branch "$TEST_REPO" feat/a
     cd "$TEST_REPO"
-    run _gwt_clean_is_merged feat/a ""
+    run __gwt_clean_is_merged feat/a ""
     [ "$status" -eq 0 ]
 }
 
-@test "_gwt_clean_newest_mtime: reflects recent git activity" {
+@test "__gwt_clean_newest_mtime: reflects recent git activity" {
     create_worktree "$TEST_REPO" feat/a
     local wt="$TEST_REPO/worktrees/feat/a"
     set_path_age_days "$wt" 200
     # Simulate recent git activity: touch HEAD in the gitdir.
     local gitdir; gitdir=$(git -C "$wt" rev-parse --git-dir)
     touch "$gitdir/HEAD"
-    run _gwt_clean_newest_mtime "$wt"
+    run __gwt_clean_newest_mtime "$wt"
     [ "$status" -eq 0 ]
     local now=$(date +%s)
     [ "$((now - output))" -lt 60 ]
 }
 
-@test "_gwt_clean_is_stale: all files old => stale" {
+@test "__gwt_clean_is_stale: all files old => stale" {
     create_worktree "$TEST_REPO" feat/a
     local wt="$TEST_REPO/worktrees/feat/a"
     set_path_age_days "$wt" 200
-    run _gwt_clean_is_stale "$wt" 120
+    run __gwt_clean_is_stale "$wt" 120
     [ "$status" -eq 0 ]
 }
 
-@test "_gwt_clean_is_stale: recent git activity => not stale" {
+@test "__gwt_clean_is_stale: recent git activity => not stale" {
     create_worktree "$TEST_REPO" feat/a
     local wt="$TEST_REPO/worktrees/feat/a"
     set_path_age_days "$wt" 200
     local gitdir; gitdir=$(git -C "$wt" rev-parse --git-dir)
     touch "$gitdir/HEAD"
-    run _gwt_clean_is_stale "$wt" 120
+    run __gwt_clean_is_stale "$wt" 120
     [ "$status" -eq 1 ]
 }
 
-@test "_gwt_clean_is_stale: respects configurable threshold" {
+@test "__gwt_clean_is_stale: respects configurable threshold" {
     create_worktree "$TEST_REPO" feat/a
     local wt="$TEST_REPO/worktrees/feat/a"
     set_path_age_days "$wt" 30
-    run _gwt_clean_is_stale "$wt" 120
+    run __gwt_clean_is_stale "$wt" 120
     [ "$status" -eq 1 ]
-    run _gwt_clean_is_stale "$wt" 14
+    run __gwt_clean_is_stale "$wt" 14
     [ "$status" -eq 0 ]
 }
 
-@test "_gwt_clean_age_days: reports integer age in days" {
+@test "__gwt_clean_age_days: reports integer age in days" {
     create_worktree "$TEST_REPO" feat/a
     local wt="$TEST_REPO/worktrees/feat/a"
     set_path_age_days "$wt" 45
-    run _gwt_clean_age_days "$wt"
+    run __gwt_clean_age_days "$wt"
     [ "$status" -eq 0 ]
     [ "$output" -ge 44 ] && [ "$output" -le 46 ]
 }
@@ -369,31 +369,31 @@ _teardown_gh_mock() {
     rm -rf "$GH_MOCK_DIR"
 }
 
-@test "_gwt_clean_pr_state: reports MERGED for a merged branch" {
+@test "__gwt_clean_pr_state: reports MERGED for a merged branch" {
     _setup_gh_mock "feat/a:MERGED"
-    run _gwt_clean_pr_state feat/a
+    run __gwt_clean_pr_state feat/a
     [ "$status" -eq 0 ]
     [ "$output" = "MERGED" ]
     _teardown_gh_mock
 }
 
-@test "_gwt_clean_pr_state: reports CLOSED for a closed-unmerged branch" {
+@test "__gwt_clean_pr_state: reports CLOSED for a closed-unmerged branch" {
     _setup_gh_mock "feat/a:CLOSED"
-    run _gwt_clean_pr_state feat/a
+    run __gwt_clean_pr_state feat/a
     [ "$output" = "CLOSED" ]
     _teardown_gh_mock
 }
 
-@test "_gwt_clean_pr_state: reports NONE when no PR exists for the branch" {
+@test "__gwt_clean_pr_state: reports NONE when no PR exists for the branch" {
     _setup_gh_mock "feat/other:MERGED"
-    run _gwt_clean_pr_state feat/a
+    run __gwt_clean_pr_state feat/a
     [ "$output" = "NONE" ]
     _teardown_gh_mock
 }
 
-@test "_gwt_clean_pr_state: queries by the exact branch head" {
+@test "__gwt_clean_pr_state: queries by the exact branch head" {
     _setup_gh_mock "feat/a:MERGED"
-    _gwt_clean_pr_state feat/a >/dev/null
+    __gwt_clean_pr_state feat/a >/dev/null
     grep -qx "list feat/a" "$GH_MOCK_DIR/calls"
     _teardown_gh_mock
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 # ~/.dotfiles/tests/test_gwt_list.bats
 #
-# _gwt_list backs both the "gwt" usage listing and the tab completion for
+# __gwt_list backs both the "gwt" usage listing and the tab completion for
 # gwt / gwt-rm. It must work from the repo root, not just from inside a
 # worktree: `git rev-parse --git-common-dir` returns a *relative* ".git"
 # at the repo root, so the worktrees prefix has to be resolved to an
@@ -18,35 +18,35 @@ teardown() {
     cleanup_test_repo "$TEST_REPO"
 }
 
-@test "_gwt_list lists worktree names from the repo root" {
+@test "__gwt_list lists worktree names from the repo root" {
     create_worktree "$TEST_REPO" test-one
     create_worktree "$TEST_REPO" test-two
     cd "$TEST_REPO"
-    run _gwt_list
+    run __gwt_list
     [ "$status" -eq 0 ]
     [[ "$output" == *"test-one"* ]]
     [[ "$output" == *"test-two"* ]]
 }
 
-@test "_gwt_list lists worktree names from inside a worktree" {
+@test "__gwt_list lists worktree names from inside a worktree" {
     create_worktree "$TEST_REPO" test-one
     cd "$TEST_REPO/worktrees/test-one"
-    run _gwt_list
+    run __gwt_list
     [ "$status" -eq 0 ]
     [[ "$output" == *"test-one"* ]]
 }
 
-@test "_gwt_list keeps the full name for branches containing a slash" {
+@test "__gwt_list keeps the full name for branches containing a slash" {
     create_worktree "$TEST_REPO" feature/foo
     cd "$TEST_REPO"
-    run _gwt_list
+    run __gwt_list
     [ "$status" -eq 0 ]
     [[ "$output" == *"feature/foo"* ]]
 }
 
-@test "_gwt_list is empty (and succeeds) outside a git repo" {
+@test "__gwt_list is empty (and succeeds) outside a git repo" {
     cd "$TMPDIR"
-    run _gwt_list
+    run __gwt_list
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
