@@ -94,7 +94,12 @@
     (setq recentf-max-saved-items 100)
     (setq xref-show-xrefs-function 'consult-xref)
     (setq consult-preview-key '(:debounce 0.5 any)) ; Wait seconds before previewing
+    ;; (setq consult-preview-key nil)
     (setq consult-async-input-debounce 0.5)
+ ;; Force manual preview (M-.) ONLY for heavy grep/ripgrep searches
+    (consult-customize
+     consult-ripgrep consult-git-grep consult-grep
+     :preview-key "M-.")
   :bind (("C-x b" . consult-buffer)
          ("C-x p b" . consult-project-buffer)
          ("C-c b" . consult-project-buffer)
